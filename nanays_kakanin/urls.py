@@ -119,6 +119,9 @@ urlpatterns = [
     path("admin-reservations/<int:reservation_id>/reject/", reservation_views.admin_reservation_reject, name="admin_reservation_reject"),
     path("admin-reservations/<int:reservation_id>/complete/", reservation_views.admin_reservation_complete, name="admin_reservation_complete"),
     path("admin-reservations/bulk-delete/", reservation_views.admin_bulk_delete_reservations, name="admin_bulk_delete_reservations"),
+
+    # Debug
+    path("storage-debug/", views.storage_debug, name="storage_debug"),
 ]
  
 # Serve static + media in development
