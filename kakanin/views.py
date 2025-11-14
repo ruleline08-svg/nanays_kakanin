@@ -30,19 +30,6 @@ def _expire_overdue_reservations():
     pass
 
 
-def storage_debug(request):
-    """Temporary endpoint to inspect storage configuration on deployed env."""
-    from django.conf import settings
-
-    data = {
-        "DEFAULT_FILE_STORAGE": settings.DEFAULT_FILE_STORAGE,
-        "CLOUDINARY_CLOUD_NAME": settings.CLOUDINARY_STORAGE.get("CLOUD_NAME") if hasattr(settings, "CLOUDINARY_STORAGE") else None,
-        "MEDIA_URL": settings.MEDIA_URL,
-    }
-
-    return JsonResponse(data)
-
-
 def can_order_now(product):
     """
     Check if a product can be ordered right now based on time window.
