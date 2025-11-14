@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'cloudinary',
+    'cloudinary_storage',
     # 'django_extensions',  # ✅ For HTTPS development server (commented out for now)
     'kakanin',  # ✅ our custom app
 ]
@@ -117,7 +119,6 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Media files (for uploaded images like kakanin photos)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SECURE_SSL_REDIRECT", "True").lower() in {"true", "1", "yes"}
@@ -127,3 +128,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Login URL configuration
 LOGIN_URL = '/login/'  # Redirect to /login/ instead of /accounts/login/
+
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
