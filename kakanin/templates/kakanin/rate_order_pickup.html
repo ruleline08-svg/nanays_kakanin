@@ -1,0 +1,446 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rate Order - Nanay's Kakanin</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Smooth transitions */
+    .transition-all {
+      transition: all 300ms ease-in-out;
+    }
+    
+    /* Mobile: Sidebar hidden by default, slides in from left */
+    #sidebar {
+      transform: translateX(-100%);
+    }
+    
+    #sidebar.show {
+      transform: translateX(0);
+    }
+    
+    /* Desktop: sidebar always visible in full width */
+    @media (min-width: 1024px) {
+      #sidebar {
+        transform: translateX(0);
+        width: 280px;
+      }
+      
+      /* When collapsed on desktop, show icon-only */
+      #sidebar.collapsed {
+        width: 80px;
+      }
+      
+      /* Hide text labels when collapsed */
+      #sidebar.collapsed .sidebar-text {
+        display: none;
+      }
+      
+      /* Center icons when collapsed */
+      #sidebar.collapsed nav a {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+      }
+    }
+    
+    /* Dropdown animations */
+    .dropdown-menu {
+      display: none;
+    }
+    
+    .dropdown-menu.show {
+      display: block;
+    }
+
+    .star-rating {
+      display: flex;
+      gap: 0.5rem;
+      font-size: 2rem;
+    }
+    .star {
+      cursor: pointer;
+      color: #d1d5db;
+      transition: color 0.2s;
+    }
+    .star.active,
+    .star:hover {
+      color: #fbbf24;
+    }
+    .star.active ~ .star {
+      color: #d1d5db;
+    }
+  </style>
+</head>
+
+<body class="bg-green-50 h-full">
+
+  <!-- Top Navbar -->
+  <header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+    <div class="flex items-center gap-4">
+      <!-- Logo -->
+      <a href="{% url 'index_user' %}" class="flex items-center gap-3">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+        <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+      </a>
+      
+      <!-- Hamburger Toggle -->
+      <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+      </button>
+    </div>
+    
+    <!-- Right Icons -->
+    <div class="ml-auto flex items-center gap-2">
+      <!-- Notifications -->
+      <div class="relative">
+        <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+          <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+          {% if unread_notifications_count > 0 %}
+            <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ unread_notifications_count }}</span>
+          {% endif %}
+        </button>
+        
+        <!-- Notifications Dropdown -->
+        <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <p class="text-sm font-semibold text-gray-700">{% if unread_notifications_count > 0 %}You have {{ unread_notifications_count }} new notification{{ unread_notifications_count|pluralize }}{% else %}No new notifications{% endif %}</p>
+          </div>
+          <div class="max-h-64 overflow-y-auto">
+            {% if recent_notifications %}
+              {% for notification in recent_notifications %}
+                <a href="{% url 'user_notifications' %}" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                  <div class="text-xl mt-1 text-green-600">
+                    <i class="fas fa-bell"></i>
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="text-sm font-semibold text-gray-800">{{ notification.get_type_display }}</h4>
+                    <p class="text-xs text-gray-500">{{ notification.message|truncatewords:10 }}</p>
+                    <p class="text-xs text-gray-400 mt-1"><i class="fas fa-clock"></i> {{ notification.created_at|timesince }} ago</p>
+                  </div>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="px-4 py-6 text-center text-gray-500 text-sm">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No new notifications</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Profile -->
+      <div class="relative">
+        <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+          {% if user.userprofile.profile_picture %}
+          <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% else %}
+          <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% endif %}
+          <span class="hidden md:block text-sm font-medium text-secondary">{{ user.get_full_name|default:user.username }}</span>
+          <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+        </button>
+        
+        <!-- Profile Dropdown -->
+        <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <h6 class="text-sm font-semibold text-gray-800">{{ user.get_full_name|default:user.username }}</h6>
+            <span class="text-xs text-gray-500">{{ user.email }}</span>
+          </div>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors">
+            <i class="bi bi-box-arrow-right text-lg text-red-600"></i>
+            <span class="text-sm text-red-600">Sign Out</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+    <!-- Navigation -->
+    <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+      <a href="{% url 'index_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-house text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Home</span>
+      </a>
+      <a href="{% url 'shop_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shop text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Shop</span>
+      </a>
+      <a href="{% url 'view_cart' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Cart</span>
+      </a>
+      <a href="{% url 'about' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-circle-info text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">About</span>
+      </a>
+      <a href="{% url 'messages_inbox' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-message text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Messages</span>
+      </a>
+      <a href="{% url 'user_profile' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-green-700 bg-green-50 transition">
+        <i class="fa-solid fa-user text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Profile</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="lg:ml-[280px] mt-20 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-6 md:p-8">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+          <i class="fas fa-star text-green-600 text-3xl"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Rate Your Order</h1>
+        <p class="text-gray-600">Order #{{ order.id }} - Pickup</p>
+        <p class="text-sm text-gray-500 mt-1">{{ order.created_at|date:"F d, Y" }}</p>
+      </div>
+
+      <!-- Messages -->
+      {% if messages %}
+        <div class="mb-6">
+          {% for message in messages %}
+            <div class="mb-3 px-4 py-3 rounded {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Order Items -->
+      <div class="bg-gray-50 rounded-lg p-4 mb-6">
+        <h3 class="font-semibold text-gray-800 mb-3">Order Items:</h3>
+        <div class="space-y-2">
+          {% for item in order.items.all %}
+            <div class="flex items-center gap-3">
+              {% if item.product.image %}
+                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="w-12 h-12 object-cover rounded">
+              {% else %}
+                <div class="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                  <i class="fas fa-image text-gray-400"></i>
+                </div>
+              {% endif %}
+              <div class="flex-1">
+                <p class="font-medium text-gray-800">{{ item.product.name }}</p>
+                <p class="text-sm text-gray-600">Quantity: {{ item.quantity }}</p>
+              </div>
+              <p class="font-semibold text-green-600">₱{{ item.subtotal }}</p>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="border-t mt-3 pt-3">
+          <div class="flex justify-between font-bold text-lg">
+            <span>Total:</span>
+            <span class="text-green-600">₱{{ order.total_amount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rating Form -->
+      <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Product Quality Rating -->
+        <div class="border-b pb-6">
+          <label class="block text-lg font-semibold text-gray-800 mb-3">
+            <i class="fas fa-utensils text-green-600 mr-2"></i>Product Quality
+          </label>
+          <p class="text-sm text-gray-600 mb-3">How was the quality and taste of the kakanin?</p>
+          <div class="star-rating mb-3" id="product-stars">
+            <i class="star fas fa-star" data-rating="1"></i>
+            <i class="star fas fa-star" data-rating="2"></i>
+            <i class="star fas fa-star" data-rating="3"></i>
+            <i class="star fas fa-star" data-rating="4"></i>
+            <i class="star fas fa-star" data-rating="5"></i>
+          </div>
+          <input type="hidden" name="product_rating" id="product_rating" required>
+          <textarea name="product_comment" rows="3" placeholder="Tell us about the taste, freshness, and quality..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+        </div>
+
+        <!-- Pickup Service Rating -->
+        <div class="border-b pb-6">
+          <label class="block text-lg font-semibold text-gray-800 mb-3">
+            <i class="fas fa-handshake text-green-600 mr-2"></i>Nanay's Service
+          </label>
+          <p class="text-sm text-gray-600 mb-3">Was Nanay friendly and helpful?</p>
+          <div class="star-rating mb-3" id="service-stars">
+            <i class="star fas fa-star" data-rating="1"></i>
+            <i class="star fas fa-star" data-rating="2"></i>
+            <i class="star fas fa-star" data-rating="3"></i>
+            <i class="star fas fa-star" data-rating="4"></i>
+            <i class="star fas fa-star" data-rating="5"></i>
+          </div>
+          <input type="hidden" name="service_rating" id="service_rating" required>
+          <textarea name="service_comment" rows="3" placeholder="How was Nanay's service? Was she friendly and accommodating?" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+        </div>
+
+        <!-- Pickup Speed Rating -->
+        <div class="border-b pb-6">
+          <label class="block text-lg font-semibold text-gray-800 mb-3">
+            <i class="fas fa-clock text-green-600 mr-2"></i>Pickup Confirmation Speed
+          </label>
+          <p class="text-sm text-gray-600 mb-3">Was your order confirmed quickly? Was it ready on time?</p>
+          <div class="star-rating mb-3" id="pickup-speed-stars">
+            <i class="star fas fa-star" data-rating="1"></i>
+            <i class="star fas fa-star" data-rating="2"></i>
+            <i class="star fas fa-star" data-rating="3"></i>
+            <i class="star fas fa-star" data-rating="4"></i>
+            <i class="star fas fa-star" data-rating="5"></i>
+          </div>
+          <input type="hidden" name="pickup_speed_rating" id="pickup_speed_rating" required>
+        </div>
+
+        <!-- Overall Experience -->
+        <div class="pb-6">
+          <label class="block text-lg font-semibold text-gray-800 mb-3">
+            <i class="fas fa-comment-dots text-green-600 mr-2"></i>Overall Experience
+          </label>
+          <p class="text-sm text-gray-600 mb-3">Any other comments or suggestions?</p>
+          <textarea name="overall_comment" rows="4" placeholder="Share your overall experience and any suggestions for improvement..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="flex gap-3">
+          <a href="{% url 'user_profile' %}" class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition text-center">
+            Cancel
+          </a>
+          <button type="submit" class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
+            <i class="fas fa-paper-plane mr-2"></i>Submit Rating
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Dropdown toggle
+    function toggleDropdown(id) {
+      const dropdown = document.getElementById(id);
+      dropdown.classList.toggle('show');
+      
+      // Close other dropdowns
+      document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        if (menu.id !== id) {
+          menu.classList.remove('show');
+        }
+      });
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('button') && !e.target.closest('.dropdown-menu')) {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+          menu.classList.remove('show');
+        });
+      }
+    });
+
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    
+    sidebarToggle.addEventListener('click', function() {
+      sidebar.classList.toggle('show');
+    });
+
+    // Star rating functionality
+    function setupStarRating(containerId, inputId) {
+      const container = document.getElementById(containerId);
+      const input = document.getElementById(inputId);
+      const stars = container.querySelectorAll('.star');
+      
+      stars.forEach(star => {
+        star.addEventListener('click', function() {
+          const rating = this.getAttribute('data-rating');
+          input.value = rating;
+          
+          // Update star display
+          stars.forEach(s => {
+            const starRating = s.getAttribute('data-rating');
+            if (starRating <= rating) {
+              s.classList.add('active');
+            } else {
+              s.classList.remove('active');
+            }
+          });
+        });
+        
+        star.addEventListener('mouseenter', function() {
+          const rating = this.getAttribute('data-rating');
+          stars.forEach(s => {
+            const starRating = s.getAttribute('data-rating');
+            if (starRating <= rating) {
+              s.style.color = '#fbbf24';
+            } else {
+              s.style.color = '#d1d5db';
+            }
+          });
+        });
+      });
+      
+      container.addEventListener('mouseleave', function() {
+        const currentRating = input.value;
+        stars.forEach(s => {
+          const starRating = s.getAttribute('data-rating');
+          if (currentRating && starRating <= currentRating) {
+            s.style.color = '#fbbf24';
+          } else {
+            s.style.color = '#d1d5db';
+          }
+        });
+      });
+    }
+    
+    // Initialize all star ratings
+    setupStarRating('product-stars', 'product_rating');
+    setupStarRating('service-stars', 'service_rating');
+    setupStarRating('pickup-speed-stars', 'pickup_speed_rating');
+    
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+      const productRating = document.getElementById('product_rating').value;
+      const serviceRating = document.getElementById('service_rating').value;
+      const pickupSpeedRating = document.getElementById('pickup_speed_rating').value;
+      
+      if (!productRating || !serviceRating || !pickupSpeedRating) {
+        e.preventDefault();
+        alert('Please provide all ratings before submitting.');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,519 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - Nanay's Kakanin</title>
+  <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'kakanin/dist/output.css' %}">
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Smooth transitions */
+    .transition-all {
+      transition: all 300ms ease-in-out;
+    }
+    
+    /* Mobile: Sidebar hidden by default, slides in from left */
+    #sidebar {
+      transform: translateX(-100%);
+    }
+    
+    #sidebar.show {
+      transform: translateX(0);
+    }
+    
+    /* Desktop: sidebar always visible in full width */
+    @media (min-width: 1024px) {
+      #sidebar {
+        transform: translateX(0);
+        width: 280px;
+      }
+      
+      /* When collapsed on desktop, show icon-only */
+      #sidebar.collapsed {
+        width: 80px;
+      }
+      
+      /* Hide text labels when collapsed */
+      #sidebar.collapsed .sidebar-text {
+        display: none;
+      }
+      
+      /* Center icons when collapsed */
+      #sidebar.collapsed nav a {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+      }
+    }
+    
+    /* Dropdown animations */
+    .dropdown-menu {
+      display: none;
+    }
+    
+    .dropdown-menu.show {
+      display: block;
+    }
+  </style>
+</head>
+<body class="bg-green-50 flex h-screen overflow-x-hidden">
+  <!-- Top Navbar -->
+  <header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+    <div class="flex items-center gap-4">
+      <a href="{% url 'index_user' %}" class="flex items-center gap-3">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+        <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+      </a>
+      <!-- Hamburger Toggle -->
+      <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+      </button>
+    </div>
+    
+    <!-- Right Icons -->
+    <div class="ml-auto flex items-center gap-2">
+      <!-- Notifications -->
+      <div class="relative">
+        <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+          <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+          {% if unread_notifications_count > 0 %}
+            <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ unread_notifications_count }}</span>
+          {% endif %}
+        </button>
+        <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <p class="text-sm font-semibold text-gray-700">{% if unread_notifications_count > 0 %}You have {{ unread_notifications_count }} new notification{{ unread_notifications_count|pluralize }}{% else %}No new notifications{% endif %}</p>
+          </div>
+          <div class="max-h-64 overflow-y-auto">
+            {% if recent_notifications %}
+              {% for notification in recent_notifications %}
+                <a href="{% url 'user_notifications' %}" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                  <div class="text-xl mt-1 text-green-600">
+                    <i class="fas fa-bell"></i>
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="text-sm font-semibold text-gray-800">{{ notification.get_type_display }}</h4>
+                    <p class="text-xs text-gray-500">{{ notification.message|truncatewords:10 }}</p>
+                    <p class="text-xs text-gray-400 mt-1"><i class="fas fa-clock"></i> {{ notification.created_at|timesince }} ago</p>
+                  </div>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="px-4 py-6 text-center text-gray-500 text-sm">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No new notifications</p>
+              </div>
+            {% endif %}
+          </div>
+          <div class="px-4 py-2 border-t border-gray-200">
+            <a href="{% url 'user_notifications' %}" class="text-sm text-primary hover:underline">Show all notifications</a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Profile -->
+      <div class="relative">
+        <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+          {% if user.userprofile.profile_picture %}
+          <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% else %}
+          <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% endif %}
+          <span class="hidden md:block text-sm font-medium text-secondary">{{ user.get_full_name|default:user.username }}</span>
+          <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+        </button>
+        <!-- Profile Dropdown -->
+        <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <h6 class="text-sm font-semibold text-gray-800">{{ user.get_full_name|default:user.username }}</h6>
+            <span class="text-xs text-gray-500">{{ user.email }}</span>
+          </div>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors">
+            <i class="bi bi-box-arrow-right text-lg text-red-600"></i>
+            <span class="text-sm text-red-600">Sign Out</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+    <!-- Navigation -->
+    <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+      <a href="{% url 'index_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-house text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Home</span>
+      </a>
+      <a href="{% url 'shop_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shop text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Shop</span>
+      </a>
+      <a href="{% url 'view_cart' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Cart</span>
+      </a>
+      <a href="{% url 'about' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-circle-info text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">About</span>
+      </a>
+      <a href="{% url 'messages_inbox' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-message text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Messages</span>
+      </a>
+      <a href="{% url 'user_profile' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-user text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Profile</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Overlay for mobile -->
+  <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+
+  <!-- Main Content Area -->
+  <div id="mainContent" class="min-h-screen w-full lg:ml-[280px] transition-all pt-20">
+    <!-- Content Header -->
+    <div class="bg-white p-4 md:p-6 border-b shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-lg font-bold text-gray-800">Checkout</h1>
+          <p class="text-gray-600 text-sm">Complete your order details</p>
+        </div>
+        <a href="{% url 'view_cart' %}" class="text-green-600 hover:text-green-700 font-medium text-sm">
+          <i class="fas fa-arrow-left"></i> Back to Cart
+        </a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-4 md:p-6">
+      <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Checkout Form -->
+        <div class="flex-1">
+
+          <form method="post" action="{% url 'checkout_cart' %}" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Delivery Options -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">Delivery Options</h2>
+          <p class="text-xs text-gray-500 mb-3">Delivery allowed only for bulk orders (≥ 20 items). Otherwise select Pickup.</p>
+          <div class="space-y-3">
+            <label class="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+              <input type="radio" name="delivery_option" value="pickup" class="text-green-600 focus:ring-green-500" checked>
+              <div class="ml-3 flex-1">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="font-medium text-gray-900">Pickup</p>
+                    <p class="text-sm text-gray-600">Pick up at our store</p>
+                  </div>
+                  <span class="text-green-600 font-semibold">FREE</span>
+                </div>
+                <div class="mt-2">
+                  <label class="block text-sm text-gray-700 mb-1">Preferred Pickup Time</label>
+                  <input type="datetime-local" name="pickup_time" id="pickupTimeInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" required>
+                  <p class="text-xs text-gray-500 mt-1">Select your preferred pickup time (within 2 hours from now)</p>
+                </div>
+              </div>
+            </label>
+            
+            <label class="flex items-center p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+              <input type="radio" name="delivery_option" value="delivery" class="text-green-600 focus:ring-green-500">
+              <div class="ml-3 flex-1">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="font-medium text-gray-900">Home Delivery</p>
+                    <p class="text-sm text-gray-600">Delivered to your address (Bulk orders only)</p>
+                  </div>
+                  <span class="text-gray-900 font-semibold">₱50.00</span>
+                </div>
+                <div class="mt-2">
+                  <label class="block text-sm text-gray-700 mb-1">Estimated Delivery Time</label>
+                  <input type="text" id="deliveryTimeDisplay" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50" readonly>
+                  <input type="hidden" name="delivery_time" id="deliveryTimeInput">
+                  <p class="text-xs text-gray-500 mt-1">Admin will confirm the exact delivery time (minimum 30 minutes from order placement)</p>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- GCash Payment (Hidden by default, shown for delivery) -->
+        <div id="gcashPayment" class="bg-white rounded-lg shadow-sm p-6 hidden">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">GCash Payment (50% Downpayment)</h3>
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <p class="text-sm text-yellow-800"><i class="fas fa-info-circle"></i> <strong>Delivery orders require 50% downpayment via GCash</strong></p>
+            <p class="text-sm text-yellow-700 mt-2">Downpayment Amount: <strong id="downpaymentAmount">₱{{ delivery_downpayment|floatformat:2 }}</strong></p>
+          </div>
+          
+          <!-- GCash QR Code -->
+          <div class="mb-6 text-center">
+            <p class="text-sm font-medium text-gray-700 mb-3">Scan QR Code to Pay</p>
+            <div class="inline-block bg-white p-6 rounded-lg border-2 border-gray-300 shadow-lg">
+              <img src="{% static 'kakanin/img/gcash.png' %}" alt="GCash QR Code" class="w-72 h-auto mx-auto">
+            </div>
+            <p class="text-xs text-gray-500 mt-3">Scan QR code with your GCash app</p>
+            <p class="text-xs text-gray-500 mt-1">Or send payment to: <strong class="text-gray-700">{{ gcash_number }}</strong></p>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">GCash Reference Number <span class="text-red-500">*</span></label>
+              <input type="text" name="gcash_reference" id="gcash_reference" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Enter your GCash reference number">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Payment Screenshot/Proof <span class="text-red-500">*</span></label>
+              <input type="file" name="payment_proof" id="payment_proof" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+              <p class="text-xs text-gray-500 mt-1">Upload a screenshot of your GCash payment</p>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Notes -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Notes (Optional)</h3>
+          <textarea name="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" placeholder="Any special instructions or requests..."></textarea>
+        </div>
+
+
+            <!-- Place Order Button -->
+            <div class="flex space-x-4">
+              <a href="{% url 'view_cart' %}" class="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-colors text-center">
+                Cancel
+              </a>
+              <button type="submit" id="placeOrderBtn" class="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors">
+                Place Order
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="lg:w-96 bg-white rounded-xl shadow-md p-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
+      
+      <!-- Cart Items -->
+      <div class="space-y-4 mb-6">
+        {% for item in cart_items %}
+        <div class="flex items-center space-x-3">
+          {% if item.image %}
+            <img src="{{ item.image }}" alt="{{ item.name }}" class="w-12 h-12 object-cover rounded-lg">
+          {% else %}
+            <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+          {% endif %}
+          <div class="flex-1">
+            <h4 class="font-medium text-gray-900">{{ item.name }}</h4>
+            <p class="text-sm text-gray-600">₱{{ item.price|floatformat:2 }} × {{ item.quantity }}</p>
+          </div>
+          <p class="font-semibold text-gray-900">₱{{ item.total|floatformat:2 }}</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Order Totals -->
+      <div class="border-t pt-4 space-y-3">
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-600">Subtotal ({{ total_quantity }} items)</span>
+          <span class="font-semibold">₱{{ subtotal|floatformat:2 }}</span>
+        </div>
+        <div class="flex justify-between text-sm">
+          <span class="text-gray-600">Shipping Fee</span>
+          <span id="shippingFeeDisplay" class="font-semibold">₱0.00</span>
+        </div>
+        <div id="downpaymentRow" class="flex justify-between text-sm hidden">
+          <span class="text-gray-600">Downpayment (50%)</span>
+          <span id="downpaymentDisplay" class="font-semibold text-blue-600">₱0.00</span>
+        </div>
+        <hr class="my-3">
+        <div class="flex justify-between text-lg font-bold">
+          <span>Grand Total</span>
+          <span id="grandTotalDisplay" class="text-green-600">₱{{ subtotal|floatformat:2 }}</span>
+        </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const deliveryOptions = document.querySelectorAll('input[name="delivery_option"]');
+      const gcashPayment = document.getElementById('gcashPayment');
+      const shippingFeeDisplay = document.getElementById('shippingFeeDisplay');
+      const downpaymentRow = document.getElementById('downpaymentRow');
+      const downpaymentDisplay = document.getElementById('downpaymentDisplay');
+      const downpaymentAmount = document.getElementById('downpaymentAmount');
+      const grandTotalDisplay = document.getElementById('grandTotalDisplay');
+      const placeOrderBtn = document.getElementById('placeOrderBtn');
+      const form = placeOrderBtn.closest('form');
+      const pickupTimeInput = document.getElementById('pickupTimeInput');
+      const deliveryTimeDisplay = document.getElementById('deliveryTimeDisplay');
+      const deliveryTimeInput = document.getElementById('deliveryTimeInput');
+      
+      const subtotal = parseFloat("{{ subtotal|default:0 }}");
+      const totalQuantity = parseInt("{{ total_quantity|default:0 }}");
+      const shippingFee = totalQuantity < 20 ? 50.00 : 0.00;
+      
+      let currentShippingFee = 0;
+      let currentDownpayment = 0;
+      let isDelivery = false;
+
+      // Set pickup time constraints (within 2 hours from now)
+      function setPickupTimeConstraints() {
+        const now = new Date();
+        const maxTime = new Date(now.getTime() + (2 * 60 * 60 * 1000)); // 2 hours from now
+        
+        // Format to datetime-local format
+        const formatDateTime = (date) => {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          return `${year}-${month}-${day}T${hours}:${minutes}`;
+        };
+        
+        pickupTimeInput.min = formatDateTime(now);
+        pickupTimeInput.max = formatDateTime(maxTime);
+        pickupTimeInput.value = formatDateTime(new Date(now.getTime() + (30 * 60 * 1000))); // Default to 30 min from now
+      }
+
+      // Set delivery time (minimum 30 minutes from now)
+      function setDeliveryTime() {
+        const now = new Date();
+        const deliveryTime = new Date(now.getTime() + (30 * 60 * 1000)); // 30 minutes from now
+        
+        const formatTime = (date) => {
+          const hours = date.getHours();
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+          const displayHours = hours % 12 || 12;
+          return `${displayHours}:${minutes} ${ampm}`;
+        };
+        
+        const formatDate = (date) => {
+          const month = date.toLocaleString('default', { month: 'short' });
+          const day = date.getDate();
+          return `${month} ${day}`;
+        };
+        
+        deliveryTimeDisplay.value = `${formatDate(deliveryTime)} at ${formatTime(deliveryTime)} (estimated)`;
+        deliveryTimeInput.value = deliveryTime.toISOString();
+      }
+
+      // Initialize time constraints
+      setPickupTimeConstraints();
+      setDeliveryTime();
+
+      // Handle delivery option changes
+      deliveryOptions.forEach(option => {
+        option.addEventListener('change', function() {
+          if (this.value === 'delivery') {
+            isDelivery = true;
+            gcashPayment.classList.remove('hidden');
+            currentShippingFee = shippingFee;
+            shippingFeeDisplay.textContent = `₱${currentShippingFee.toFixed(2)}`;
+            
+            // Calculate downpayment
+            currentDownpayment = (subtotal + currentShippingFee) * 0.50;
+            downpaymentRow.classList.remove('hidden');
+            downpaymentDisplay.textContent = `₱${currentDownpayment.toFixed(2)}`;
+            downpaymentAmount.textContent = `₱${currentDownpayment.toFixed(2)}`;
+          } else {
+            isDelivery = false;
+            gcashPayment.classList.add('hidden');
+            currentShippingFee = 0;
+            currentDownpayment = 0;
+            shippingFeeDisplay.textContent = '₱0.00';
+            downpaymentRow.classList.add('hidden');
+          }
+          updateTotal();
+        });
+      });
+
+      function updateTotal() {
+        const grandTotal = subtotal + currentShippingFee;
+        grandTotalDisplay.textContent = `₱${grandTotal.toFixed(2)}`;
+      }
+
+      // Form submission with pickup confirmation modal
+      form.addEventListener('submit', function(e) {
+        if (!isDelivery) {
+          e.preventDefault();
+          if (confirm('Are you sure you want to pick up your product?')) {
+            form.submit();
+          }
+        }
+      });
+
+    });
+
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const overlay = document.getElementById('overlay');
+    
+    sidebarToggle.addEventListener('click', function() {
+      sidebar.classList.toggle('show');
+      overlay.classList.toggle('hidden');
+    });
+
+    overlay.addEventListener('click', function() {
+      sidebar.classList.remove('show');
+      overlay.classList.add('hidden');
+    });
+
+    // Dropdown toggle
+    function toggleDropdown(id) {
+      const dropdown = document.getElementById(id);
+      dropdown.classList.toggle('show');
+      
+      // Close other dropdowns
+      document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        if (menu.id !== id) {
+          menu.classList.remove('show');
+        }
+      });
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('button') && !e.target.closest('.dropdown-menu')) {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+          menu.classList.remove('show');
+        });
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,381 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete Product - Admin Panel</title>
+    <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+    <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+      .transition-all { transition: all 300ms ease-in-out; }
+      #sidebar { transform: translateX(-100%); }
+      #sidebar.show { transform: translateX(0); }
+      @media (min-width: 1024px) {
+        #sidebar { transform: translateX(0); width: 280px; }
+        #sidebar.collapsed { width: 80px; }
+        #sidebar.collapsed .sidebar-text { display: none; }
+        #sidebar.collapsed nav a { justify-content: center; padding-left: 0; padding-right: 0; }
+      }
+      .dropdown-menu { display: none; }
+      .dropdown-menu.show { display: block; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-white to-green-50 h-full overflow-x-hidden">
+
+<header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+  <div class="flex items-center gap-4">
+    <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-3">
+      <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+      <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+    </a>
+    <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+      <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+    </button>
+  </div>
+  <div class="hidden md:flex flex-1 max-w-xl mx-8">
+    <div class="relative w-full">
+      <input type="text" 
+               id="pageSearchInput"
+               placeholder="Search on this page..." 
+               class="w-full px-4 py-2 pl-10 pr-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <span id="searchCounter" class="text-xs text-gray-500 hidden"></span>
+          <button type="button" id="clearPageSearch" class="text-gray-400 hover:text-gray-600 p-1 hidden">
+            <i class="fas fa-times text-sm"></i>
+          </button>
+        </div>
+    </div>
+  </div>
+  <div class="ml-auto flex items-center gap-2">
+    <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i class="fa-solid fa-search text-xl text-gray-600"></i></button>
+    <div class="relative">
+      <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+        <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+        {% if unread_messages_count > 0 %}
+          <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ unread_messages_count }}</span>
+        {% endif %}
+      </button>
+      <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+        <div class="px-4 py-3 border-b border-gray-200"><p class="text-sm font-semibold text-gray-700">No new notifications</p></div>
+      </div>
+    </div>
+    
+    </div>
+    <div class="relative">
+      <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+        <span class="hidden md:block text-sm font-medium text-secondary">{{ user.username }}</span>
+        <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+      </button>
+      <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+        <div class="px-4 py-3 border-b border-gray-200"><h6 class="text-sm font-semibold text-gray-800">{{ user.username }}</h6><span class="text-xs text-gray-500">{{ user.email }}</span></div>
+        <a href="/admin/" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"><i class="bi bi-gear text-lg text-gray-600"></i><span class="text-sm text-gray-700">Django Admin</span></a>
+        <div class="border-t border-gray-200 my-1"></div>
+        <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors"><i class="bi bi-box-arrow-right text-lg text-red-600"></i><span class="text-sm text-red-600">Sign Out</span></a>
+      </div>
+    </div>
+  </div>
+</header>
+<aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+  <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+    <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-house text-lg min-w-[20px]"></i><span class="sidebar-text">Home</span></a>
+    <a href="{% url 'admin_products' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-green-700 bg-green-50 hover:bg-green-100 transition"><i class="fa-solid fa-box text-lg min-w-[20px]"></i><span class="sidebar-text">Products</span></a>
+    <a href="{% url 'admin_content' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-edit text-lg min-w-[20px]"></i><span class="sidebar-text">Content</span></a>
+    <a href="{% url 'admin_orders' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i><span class="sidebar-text">Orders</span></a>
+    <a href="{% url 'admin_reservations' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-calendar-check text-lg min-w-[20px]"></i><span class="sidebar-text">Reservations</span></a>
+    <a href="{% url 'admin_users' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-users text-lg min-w-[20px]"></i><span class="sidebar-text">Users</span></a>
+    <a href="{% url 'messages_inbox' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-message text-lg min-w-[20px]"></i><span class="sidebar-text">Messages</span>{% if unread_messages_count > 0 %}<span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">{{ unread_messages_count }}</span>{% endif %}</a>
+    <a href="/admin/" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-cog text-lg min-w-[20px]"></i><span class="sidebar-text">Django Admin</span></a>
+  </nav>
+</aside>
+<div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+<div id="mainContent" class="lg:ml-[280px] flex-1 flex flex-col min-h-screen pt-20 transition-all">
+  <div class="p-6">
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-800">Delete Product</h1>
+        <p class="text-gray-600">Confirm product deletion</p>
+      </div>
+      <a href="{% url 'admin_products' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Products
+      </a>
+    </div>
+
+    <div class="max-w-2xl mx-auto">
+      <div class="bg-white rounded-lg shadow">
+        <div class="p-6">
+          <div class="flex items-center mb-6">
+            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+              <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                    <a href="{% url 'admin_products' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Products
+                    </a>
+                </div>
+
+                <div class="max-w-2xl mx-auto">
+                    <div class="bg-white rounded-lg shadow">
+                        <div class="p-6">
+                            <div class="flex items-center mb-6">
+                                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-semibold text-gray-900">Delete Product</h2>
+                                    <p class="text-gray-600">This action cannot be undone.</p>
+                                </div>
+                            </div>
+
+                            <!-- Product Preview -->
+                            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                                <div class="flex items-center">
+                                    {% if product.image %}
+                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-20 h-20 object-cover rounded-lg mr-4">
+                                    {% else %}
+                                        <div class="w-20 h-20 bg-gray-200 rounded-lg flex items-center justify-center mr-4">
+                                            <i class="fas fa-image text-gray-400 text-2xl"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div>
+                                        <h3 class="text-lg font-medium text-gray-900">{{ product.name }}</h3>
+                                        <p class="text-gray-600">₱{{ product.price|floatformat:2 }}</p>
+                                        {% if product.description %}
+                                            <p class="text-sm text-gray-500 mt-1">{{ product.description|truncatewords:15 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-exclamation-circle text-red-400"></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="text-sm font-medium text-red-800">Warning</h3>
+                                        <div class="mt-2 text-sm text-red-700">
+                                            <p>Are you sure you want to delete this product? This will:</p>
+                                            <ul class="list-disc list-inside mt-2 space-y-1">
+                                                <li>Permanently remove the product from your catalog</li>
+                                                <li>Remove the product from any existing orders (historical data will remain)</li>
+                                                <li>Delete the associated product image</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form method="POST" class="flex justify-end space-x-3">
+                                {% csrf_token %}
+                                <a href="{% url 'admin_products' %}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-md">
+                                    Cancel
+                                </a>
+                                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md">
+                                    <i class="fas fa-trash mr-2"></i>Delete Product
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const mainContent = document.getElementById('mainContent');
+  if (sidebarToggle && sidebar && overlay && mainContent) {
+    sidebarToggle.addEventListener('click', function() {
+      if (window.innerWidth < 1024) {
+        sidebar.classList.toggle('show');
+        overlay.classList.toggle('hidden');
+      } else {
+        sidebar.classList.toggle('collapsed');
+        mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '80px' : '280px';
+      }
+    });
+    overlay.addEventListener('click', function() {
+      sidebar.classList.remove('show');
+      overlay.classList.add('hidden');
+    });
+    window.addEventListener('resize', function() {
+      if (window.innerWidth >= 1024) {
+        overlay.classList.add('hidden');
+        sidebar.classList.remove('show');
+        mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '80px' : '280px';
+      } else {
+        sidebar.classList.remove('collapsed');
+        mainContent.style.marginLeft = '0';
+      }
+    });
+  }
+  function toggleDropdown(id) {
+    const dropdown = document.getElementById(id);
+    const allDropdowns = document.querySelectorAll('.dropdown-menu');
+    allDropdowns.forEach(d => { if (d.id !== id) d.classList.remove('show'); });
+    dropdown.classList.toggle('show');
+  }
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.relative')) {
+      document.querySelectorAll('.dropdown-menu').forEach(d => { d.classList.remove('show'); });
+    }
+  });
+
+    // In-page search and highlight functionality
+    const pageSearchInput = document.getElementById('pageSearchInput');
+    const clearPageSearch = document.getElementById('clearPageSearch');
+    const searchCounter = document.getElementById('searchCounter');
+    let currentHighlights = [];
+    let currentMatchIndex = 0;
+
+    function removeHighlights() {
+      currentHighlights.forEach(highlight => {
+        const parent = highlight.parentNode;
+        parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+        parent.normalize();
+      });
+      currentHighlights = [];
+      currentMatchIndex = 0;
+      searchCounter.classList.add('hidden');
+    }
+
+    function highlightText(searchTerm) {
+      removeHighlights();
+      
+      if (!searchTerm || searchTerm.trim() === '') {
+        return;
+      }
+
+      const mainContent = document.getElementById('mainContent');
+      if (!mainContent) return;
+
+      const walker = document.createTreeWalker(
+        mainContent,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: function(node) {
+            if (node.parentElement.tagName === 'SCRIPT' || 
+                node.parentElement.tagName === 'STYLE' ||
+                node.parentElement.classList.contains('highlight-match')) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      );
+
+      const nodesToHighlight = [];
+      let node;
+      
+      while (node = walker.nextNode()) {
+        const text = node.textContent;
+        const lowerText = text.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        if (lowerText.includes(lowerSearch)) {
+          nodesToHighlight.push(node);
+        }
+      }
+
+      nodesToHighlight.forEach(textNode => {
+        const text = textNode.textContent;
+        const lowerText = text.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        let lastIndex = 0;
+        const fragment = document.createDocumentFragment();
+        
+        let index = lowerText.indexOf(lowerSearch);
+        while (index !== -1) {
+          if (index > lastIndex) {
+            fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+          }
+          
+          const mark = document.createElement('mark');
+          mark.className = 'highlight-match';
+          mark.style.backgroundColor = '#fef08a';
+          mark.style.padding = '2px 0';
+          mark.style.borderRadius = '2px';
+          mark.textContent = text.substring(index, index + searchTerm.length);
+          fragment.appendChild(mark);
+          currentHighlights.push(mark);
+          
+          lastIndex = index + searchTerm.length;
+          index = lowerText.indexOf(lowerSearch, lastIndex);
+        }
+        
+        if (lastIndex < text.length) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+        
+        textNode.parentNode.replaceChild(fragment, textNode);
+      });
+
+      if (currentHighlights.length > 0) {
+        searchCounter.textContent = `${currentHighlights.length} found`;
+        searchCounter.classList.remove('hidden');
+        
+        if (currentHighlights[0]) {
+          currentHighlights[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          currentHighlights[0].style.backgroundColor = '#fbbf24';
+        }
+      }
+    }
+
+    pageSearchInput.addEventListener('input', function() {
+      const searchTerm = this.value.trim();
+      
+      if (searchTerm) {
+        clearPageSearch.classList.remove('hidden');
+        highlightText(searchTerm);
+      } else {
+        clearPageSearch.classList.add('hidden');
+        removeHighlights();
+      }
+    });
+
+    clearPageSearch.addEventListener('click', function() {
+      pageSearchInput.value = '';
+      clearPageSearch.classList.add('hidden');
+      removeHighlights();
+      pageSearchInput.focus();
+    });
+
+    pageSearchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && currentHighlights.length > 0) {
+        e.preventDefault();
+        
+        if (currentHighlights[currentMatchIndex]) {
+          currentHighlights[currentMatchIndex].style.backgroundColor = '#fef08a';
+        }
+        
+        currentMatchIndex = (currentMatchIndex + 1) % currentHighlights.length;
+        
+        if (currentHighlights[currentMatchIndex]) {
+          currentHighlights[currentMatchIndex].style.backgroundColor = '#fbbf24';
+          currentHighlights[currentMatchIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        searchCounter.textContent = `${currentMatchIndex + 1} of ${currentHighlights.length}`;
+      }
+    });
+
+</script>
+</body>
+</html>

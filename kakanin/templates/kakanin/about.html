@@ -1,0 +1,562 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <title>About - Nanay's Kakanin</title>
+  <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    
+    /* Smooth transitions */
+    .transition-all {
+      transition: all 300ms ease-in-out;
+    }
+    
+    /* Mobile: Sidebar hidden by default, slides in from left */
+    #sidebar {
+      transform: translateX(-100%);
+    }
+    
+    #sidebar.show {
+      transform: translateX(0);
+    }
+    
+    /* Desktop: sidebar always visible in full width */
+    @media (min-width: 1024px) {
+      #sidebar {
+        transform: translateX(0);
+        width: 280px;
+      }
+      
+      /* When collapsed on desktop, show icon-only */
+      #sidebar.collapsed {
+        width: 80px;
+      }
+      
+      /* Hide text labels when collapsed */
+      #sidebar.collapsed .sidebar-text {
+        display: none;
+      }
+      
+      /* Center icons when collapsed */
+      #sidebar.collapsed nav a {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+      }
+    }
+    
+    /* Dropdown animations */
+    .dropdown-menu {
+      display: none;
+    }
+    
+    .dropdown-menu.show {
+      display: block;
+    }
+  </style>
+</head>
+<body class="{% if user.is_authenticated and not user.is_superuser %}bg-gray-50 h-full{% endif %}" style="{% if not user.is_authenticated or user.is_superuser %}background-color: #d4f1e8;{% endif %}">
+
+{% if user.is_authenticated and not user.is_superuser %}
+  <!-- USER LAYOUT WITH NEW NAVBAR AND SIDEBAR -->
+  
+  <!-- Top Navbar -->
+  <header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+    <div class="flex items-center gap-4">
+      <a href="{% url 'index_user' %}" class="flex items-center gap-3">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+        <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+      </a>
+      <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+      </button>
+    </div>
+    <div class="hidden md:flex flex-1 max-w-xl mx-8">
+      <div class="relative w-full">
+        <input type="text" placeholder="Search" class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+      </div>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
+        <i class="fa-solid fa-search text-xl text-gray-600"></i>
+      </button>
+      <div class="relative">
+        <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+          <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+          {% if unread_notifications_count > 0 %}
+            <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ unread_notifications_count }}</span>
+          {% endif %}
+        </button>
+        <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <p class="text-sm font-semibold text-gray-700">{% if unread_notifications_count > 0 %}You have {{ unread_notifications_count }} new notification{{ unread_notifications_count|pluralize }}{% else %}No new notifications{% endif %}</p>
+          </div>
+          <div class="max-h-64 overflow-y-auto">
+            {% if recent_notifications %}
+              {% for notification in recent_notifications %}
+                <a href="{% url 'user_notifications' %}" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                  <div class="text-xl mt-1 {% if 'Reservation' in notification.message %}text-green-600{% elif 'Order' in notification.message %}text-blue-600{% else %}text-yellow-500{% endif %}">
+                    {% if 'Reservation' in notification.message %}
+                      <i class="fas fa-calendar-check"></i>
+                    {% elif 'Order' in notification.message %}
+                      <i class="fas fa-shopping-cart"></i>
+                    {% else %}
+                      <i class="fas fa-info-circle"></i>
+                    {% endif %}
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="text-sm font-semibold text-gray-800">{{ notification.get_type_display }}</h4>
+                    <p class="text-xs text-gray-500">{{ notification.message|truncatewords:10 }}</p>
+                    <p class="text-xs text-gray-400 mt-1"><i class="fas fa-clock"></i> {{ notification.created_at|timesince }} ago</p>
+                  </div>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="px-4 py-6 text-center text-gray-500 text-sm">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No new notifications</p>
+              </div>
+            {% endif %}
+          </div>
+          <div class="px-4 py-2 border-t border-gray-200">
+            <a href="{% url 'user_notifications' %}" class="text-sm text-primary hover:underline">Show all notifications</a>
+          </div>
+        </div>
+      </div>
+      <div class="relative">
+        <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+          {% if user.userprofile.profile_picture %}
+          <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% else %}
+          <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% endif %}
+          <span class="hidden md:block text-sm font-medium text-secondary">{{ user.get_full_name|default:user.username }}</span>
+          <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+        </button>
+        <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <h6 class="text-sm font-semibold text-gray-800">{{ user.get_full_name|default:user.username }}</h6>
+            <span class="text-xs text-gray-500">{{ user.email }}</span>
+          </div>
+          <div class="px-4 py-2">
+            <div class="flex items-start gap-3 py-2">
+              <i class="bi bi-envelope text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Email</p>
+                <p class="text-sm text-gray-700">{{ user.email }}</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 py-2">
+              <i class="bi bi-telephone text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Phone</p>
+                <p class="text-sm text-gray-700">{{ user.userprofile.phone|default:'Not provided' }}</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 py-2">
+              <i class="bi bi-geo-alt text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Address</p>
+                <p class="text-sm text-gray-700">{{ user.userprofile.get_full_address|default:'Not provided' }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors">
+            <i class="bi bi-box-arrow-right text-lg text-red-600"></i>
+            <span class="text-sm text-red-600">Sign Out</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+    <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+      <a href="{% url 'index_user' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-house text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Home</span>
+      </a>
+      <a href="{% url 'shop_user' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shop text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Shop</span>
+      </a>
+      <a href="{% url 'view_cart' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i>
+        <span class="sidebar-text flex items-center gap-2">
+          Cart
+          {% if total_cart_count > 0 %}
+            <span class="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-semibold">{{ total_cart_count }}</span>
+          {% endif %}
+        </span>
+      </a>
+      <a href="{% url 'about' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-green-700 bg-green-50 hover:bg-green-100 transition">
+        <i class="fa-solid fa-circle-info text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">About</span>
+      </a>
+      <a href="{% url 'messages_inbox' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition relative">
+        <i class="fa-solid fa-message text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Messages</span>
+        {% if unread_messages_count > 0 %}
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">{{ unread_messages_count }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'user_profile' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-user text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Profile</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Overlay for mobile -->
+  <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+
+  <!-- Main Content Wrapper -->
+  <div id="mainContent" class="min-h-screen lg:ml-[280px] transition-all pt-20 overflow-x-hidden">
+
+  <!-- Main Content Area -->
+  <div class="flex-1 flex flex-col">
+    <!-- Header -->
+    <div class="bg-white p-6 border-b">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">About Us</h1>
+          <p class="text-gray-600 mt-1">Learn more about Nanay's Kakanin</p>
+        </div>
+        {% if user.is_authenticated and not user.is_superuser %}
+        <button type="button" onclick="openFeedbackModal()" class="inline-flex items-center gap-2 px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">
+          <i class="fa-solid fa-comment-dots"></i>
+          <span>Send Feedback</span>
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- About content for user -->
+    <div class="flex-1 p-6 overflow-y-auto">
+      <div class="max-w-4xl mx-auto">
+        {% if about %}
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div class="md:flex md:items-start md:gap-6">
+              <div class="flex-1">
+                <h2 class="text-3xl font-bold text-green-600 mb-6">{{ about.title|default:"About Nanay's Kakanin" }}</h2>
+                <div class="text-gray-700 leading-relaxed space-y-4">
+                  {{ about.body|linebreaks }}
+                </div>
+
+                <!-- Feature highlights -->
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div class="text-center p-4">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <i class="fas fa-heart text-green-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Made with Love</h3>
+                    <p class="text-gray-600 text-sm">Every kakanin is crafted with care and passion</p>
+                  </div>
+                  <div class="text-center p-4">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Authentic Recipes</h3>
+                    <p class="text-gray-600 text-sm">Traditional methods passed down through generations</p>
+                  </div>
+                  <div class="text-center p-4">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <i class="fas fa-seedling text-green-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold text-gray-900 mb-2">Fresh Quality</h3>
+                    <p class="text-gray-600 text-sm">Only the finest ingredients for the best taste</p>
+                  </div>
+                </div>
+
+                {% if about.mission and about.mission != 'None' %}
+                <div class="mt-8">
+                  <h3 class="text-2xl font-bold text-green-600 mb-4">Our Mission</h3>
+                  <div class="text-gray-700 leading-relaxed">
+                    {{ about.mission|linebreaks }}
+                  </div>
+                </div>
+                {% endif %}
+
+                {% if about.vision and about.vision != 'None' %}
+                <div class="mt-8">
+                  <h3 class="text-2xl font-bold text-green-600 mb-4">Our Vision</h3>
+                  <div class="text-gray-700 leading-relaxed">
+                    {{ about.vision|linebreaks }}
+                  </div>
+                </div>
+                {% endif %}
+
+                <!-- Authenticated User Feedback Form (hidden inline; modal will be used) -->
+                <div id="feedback" class="mt-10 border-t pt-8 hidden"></div>
+              </div>
+
+              <!-- Nanay photo (if provided) -->
+              <div class="mt-6 md:mt-0 md:w-40 flex-shrink-0">
+                <div class="text-sm text-gray-600 mb-2">Nanay's Photo</div>
+                {% if about.photo %}
+                  <img src="{{ about.photo.url }}" alt="Nanay photo" class="w-40 h-40 object-cover rounded-lg shadow">
+                {% else %}
+                  <div class="w-40 h-40 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400">No photo</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% else %}
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
+            No About content yet. Please add it from Admin Content.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+{% else %}
+  <!-- GUEST LAYOUT (existing public About with navbar) -->
+  <!-- Navbar -->
+  <header class="bg-white shadow-md">
+    <div class="max-w-7xl mx-auto flex items-center px-8 py-4">
+      <!-- Left: Logo + Name -->
+      <div class="flex items-center space-x-3">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="h-10 w-10 rounded-full">
+        <span class="text-xl font-bold text-green-800">Nanay's Kakanin</span>
+      </div>
+      <!-- Center: Navigation Links -->
+      <nav class="hidden md:flex items-center space-x-6 text-green-700 font-medium flex-1 justify-center">
+        <a href="{% url 'home' %}" class="hover:text-green-500">Home</a>
+        <a href="{% url 'shop' %}" class="hover:text-green-500">Shop</a>
+        <a href="{% url 'about' %}" class="hover:text-green-500">About</a>
+        <a href="{% url 'contact' %}" class="hover:text-green-500">Contact</a>
+      </nav>
+      <!-- Right: Auth Buttons -->
+      <div class="flex items-center space-x-4">
+        <a href="{% url 'login' %}" class="px-4 py-2 border border-green-600 text-green-700 rounded-lg hover:bg-green-100">Login</a>
+        <a href="{% url 'signup' %}" class="px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700">Sign Up</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content -->
+  <main class="max-w-3xl mx-auto p-8 bg-white shadow-lg rounded mt-8">
+    {% if about %}
+      <div class="md:flex md:items-start md:gap-6">
+        <div class="flex-1">
+          <h2 class="text-3xl font-bold text-green-700 mb-4">{{ about.title|default:"About Nanay's Kakanin" }}</h2>
+          <div class="text-gray-700 leading-relaxed space-y-4">
+            {{ about.body|linebreaks }}
+          </div>
+          <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="text-center p-4">
+              <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-heart text-green-600 text-2xl"></i>
+              </div>
+              <h3 class="font-semibold text-gray-900 mb-2">Made with Love</h3>
+              <p class="text-gray-600 text-sm">Every kakanin is crafted with care and passion</p>
+            </div>
+            <div class="text-center p-4">
+              <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+              </div>
+              <h3 class="font-semibold text-gray-900 mb-2">Authentic Recipes</h3>
+              <p class="text-gray-600 text-sm">Traditional methods passed down through generations</p>
+            </div>
+            <div class="text-center p-4">
+              <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-seedling text-green-600 text-2xl"></i>
+              </div>
+              <h3 class="font-semibold text-gray-900 mb-2">Fresh Quality</h3>
+              <p class="text-gray-600 text-sm">Only the finest ingredients for the best taste</p>
+            </div>
+          </div>
+          {% if about.mission and about.mission != 'None' %}
+          <div class="mt-8">
+            <h3 class="text-2xl font-bold text-green-600 mb-4">Our Mission</h3>
+            <div class="text-gray-700 leading-relaxed">
+              {{ about.mission|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+          {% if about.vision and about.vision != 'None' %}
+          <div class="mt-8">
+            <h3 class="text-2xl font-bold text-green-600 mb-4">Our Vision</h3>
+            <div class="text-gray-700 leading-relaxed">
+              {{ about.vision|linebreaks }}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="mt-6 md:mt-0 md:w-40 flex-shrink-0">
+          <div class="text-sm text-gray-600 mb-2">Nanay's Photo</div>
+          {% if about.photo %}
+            <img src="{{ about.photo.url }}" alt="Nanay photo" class="w-40 h-40 object-cover rounded-lg shadow">
+          {% else %}
+            <div class="w-40 h-40 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400">No photo</div>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div class="text-center text-gray-500">
+        No About content yet. Please add it from Admin Content.
+      </div>
+    {% endif %}
+
+    <!-- Admin inline CRUD on About page for superusers only -->
+    {% if user.is_superuser %}
+      <div class="mt-10 border-t pt-8">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">Admin: Edit About</h3>
+        <form method="post" action="{% url 'admin_about_edit' %}" enctype="multipart/form-data" class="space-y-4">
+          {% csrf_token %}
+          <div>
+            <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input id="title" name="title" type="text" value="{% if about %}{{ about.title }}{% endif %}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+          </div>
+          <div>
+            <label for="body" class="block text-sm font-medium text-gray-700 mb-1">Content</label>
+            <textarea id="body" name="body" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">{% if about %}{{ about.body }}{% endif %}</textarea>
+          </div>
+          <div>
+            <label for="mission" class="block text-sm font-medium text-gray-700 mb-1">Mission</label>
+            <textarea id="mission" name="mission" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">{% if about %}{{ about.mission }}{% endif %}</textarea>
+          </div>
+          <div>
+            <label for="vision" class="block text-sm font-medium text-gray-700 mb-1">Vision</label>
+            <textarea id="vision" name="vision" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">{% if about %}{{ about.vision }}{% endif %}</textarea>
+          </div>
+          <div>
+            <label for="photo" class="block text-sm font-medium text-gray-700 mb-1">Photo</label>
+            <input id="photo" name="photo" type="file" accept="image/*" class="w-full text-sm text-gray-700">
+          </div>
+          <div class="flex items-center justify-between mt-4">
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Save</button>
+            {% if about %}
+              <button form="delete-about" type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded" onclick="return confirm('Delete About page?');">Delete</button>
+            {% endif %}
+          </div>
+        </form>
+        {% if about %}
+        <form id="delete-about" method="post" action="{% url 'admin_about_delete' %}" class="hidden">
+          {% csrf_token %}
+        </form>
+        {% endif %}
+      </div>
+    {% endif %}
+  </main>
+{% endif %}
+
+{% if user.is_authenticated and not user.is_superuser %}
+<!-- Feedback Modal -->
+<div id="feedbackModal" class="fixed inset-0 hidden z-50">
+  <!-- backdrop -->
+  <div class="absolute inset-0 bg-black/50" onclick="closeFeedbackModal()"></div>
+  <!-- panel -->
+  <div class="relative mx-auto mt-24 w-full max-w-lg px-4">
+    <div class="bg-white rounded-xl shadow-xl border">
+      <div class="flex items-center justify-between px-5 py-4 border-b">
+        <h3 class="text-lg font-semibold text-gray-900">Send Feedback</h3>
+        <button class="text-gray-400 hover:text-gray-600" onclick="closeFeedbackModal()"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <form method="post" action="{% url 'submit_feedback' %}" class="p-5 space-y-3">
+        {% csrf_token %}
+        <input type="text" name="category" placeholder="Category (optional)" class="w-full px-3 py-2 border rounded">
+        <textarea name="message" rows="5" placeholder="Share your feedback with us..." class="w-full px-3 py-2 border rounded" required></textarea>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" class="px-4 py-2 rounded border text-gray-700 hover:bg-gray-50" onclick="closeFeedbackModal()">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">Submit Feedback</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    function openFeedbackModal(){
+      document.getElementById('feedbackModal').classList.remove('hidden');
+    }
+    function closeFeedbackModal(){
+      document.getElementById('feedbackModal').classList.add('hidden');
+    }
+
+    // Sidebar toggle (only for authenticated users)
+    {% if user.is_authenticated and not user.is_superuser %}
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const mainContent = document.getElementById('mainContent');
+    
+    if (sidebarToggle && sidebar && overlay && mainContent) {
+      sidebarToggle.addEventListener('click', function() {
+        if (window.innerWidth < 1024) {
+          sidebar.classList.toggle('show');
+          overlay.classList.toggle('hidden');
+        } else {
+          sidebar.classList.toggle('collapsed');
+          if (sidebar.classList.contains('collapsed')) {
+            mainContent.style.marginLeft = '80px';
+          } else {
+            mainContent.style.marginLeft = '280px';
+          }
+        }
+      });
+      
+      overlay.addEventListener('click', function() {
+        sidebar.classList.remove('show');
+        overlay.classList.add('hidden');
+      });
+      
+      window.addEventListener('resize', function() {
+        if (window.innerWidth >= 1024) {
+          overlay.classList.add('hidden');
+          sidebar.classList.remove('show');
+          if (sidebar.classList.contains('collapsed')) {
+            mainContent.style.marginLeft = '80px';
+          } else {
+            mainContent.style.marginLeft = '280px';
+          }
+        } else {
+          sidebar.classList.remove('collapsed');
+          mainContent.style.marginLeft = '0';
+        }
+      });
+    }
+
+    function toggleDropdown(id) {
+      const dropdown = document.getElementById(id);
+      const allDropdowns = document.querySelectorAll('.dropdown-menu');
+      allDropdowns.forEach(d => {
+        if (d.id !== id) d.classList.remove('show');
+      });
+      dropdown.classList.toggle('show');
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.relative')) {
+        document.querySelectorAll('.dropdown-menu').forEach(d => {
+          d.classList.remove('show');
+        });
+      }
+    });
+    {% endif %}
+  </script>
+</div>
+{% endif %}
+
+</body>
+</html>

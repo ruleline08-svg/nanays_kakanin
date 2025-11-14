@@ -1,0 +1,1123 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Management - Admin Panel</title>
+    <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+    <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+      .transition-all { transition: all 300ms ease-in-out; }
+      #sidebar { transform: translateX(-100%); }
+      #sidebar.show { transform: translateX(0); }
+      @media (min-width: 1024px) {
+        #sidebar { transform: translateX(0); width: 280px; }
+        #sidebar.collapsed { width: 80px; }
+        #sidebar.collapsed .sidebar-text { display: none; }
+        #sidebar.collapsed nav a { justify-content: center; padding-left: 0; padding-right: 0; }
+      }
+      .dropdown-menu { display: none; }
+      .dropdown-menu.show { display: block; }
+    </style>
+</head>
+<body class="bg-green-50 h-full overflow-x-hidden">
+
+<header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+  <div class="flex items-center gap-4">
+    <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-3">
+      <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+      <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+    </a>
+    <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+      <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+    </button>
+  </div>
+  <div class="hidden md:flex flex-1 max-w-xl mx-8">
+    <div class="relative w-full">
+      <input type="text" 
+               id="pageSearchInput"
+               placeholder="Search on this page..." 
+               class="w-full px-4 py-2 pl-10 pr-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <span id="searchCounter" class="text-xs text-gray-500 hidden"></span>
+          <button type="button" id="clearPageSearch" class="text-gray-400 hover:text-gray-600 p-1 hidden">
+            <i class="fas fa-times text-sm"></i>
+          </button>
+        </div>
+    </div>
+  </div>
+  <div class="ml-auto flex items-center gap-2">
+    <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i class="fa-solid fa-search text-xl text-gray-600"></i></button>
+    <div class="relative">
+      <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+        <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+        {% if admin_unread_notifications_count > 0 %}
+          <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ admin_unread_notifications_count }}</span>
+        {% endif %}
+      </button>
+      <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+        <div class="px-4 py-3 border-b border-gray-200">
+          <p class="text-sm font-semibold text-gray-700">
+            {% if admin_unread_notifications_count > 0 %}
+              You have {{ admin_unread_notifications_count }} new notification{{ admin_unread_notifications_count|pluralize }}
+            {% else %}
+              No new notifications
+            {% endif %}
+          </p>
+        </div>
+        <div class="max-h-64 overflow-y-auto">
+          {% if admin_recent_notifications %}
+            {% for notif in admin_recent_notifications %}
+              <a href="{% url 'admin_mark_notification_read' notif.id %}" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                <i class="{% if 'Order' in notif.message %}fas fa-shopping-cart{% elif 'Reservation' in notif.message %}fas fa-calendar-check{% elif 'stock' in notif.message %}fas fa-box{% else %}fas fa-info-circle{% endif %} text-2xl text-green-600 mt-1"></i>
+                <div class="flex-1">
+                  <p class="text-sm text-gray-800">{{ notif.message|truncatewords:10 }}</p>
+                  <p class="text-xs text-gray-400 mt-1">{{ notif.created_at|timesince }} ago</p>
+                </div>
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="px-4 py-6 text-center text-gray-500 text-sm">
+              <i class="fas fa-bell-slash text-2xl mb-2"></i>
+              <p>No notifications</p>
+            </div>
+          {% endif %}
+        </div>
+        <div class="px-4 py-2 border-t border-gray-200">
+          <a href="{% url 'admin_notifications' %}" class="text-sm text-primary hover:underline">Show all notifications</a>
+        </div>
+      </div>
+    </div>
+    
+    </div>
+    <div class="relative">
+      <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+        <span class="hidden md:block text-sm font-medium text-secondary">{{ user.username }}</span>
+        <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+      </button>
+      <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+        <div class="px-4 py-3 border-b border-gray-200"><h6 class="text-sm font-semibold text-gray-800">{{ user.username }}</h6><span class="text-xs text-gray-500">{{ user.email }}</span></div>
+        <a href="/admin/" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"><i class="bi bi-gear text-lg text-gray-600"></i><span class="text-sm text-gray-700">Django Admin</span></a>
+        <div class="border-t border-gray-200 my-1"></div>
+        <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors"><i class="bi bi-box-arrow-right text-lg text-red-600"></i><span class="text-sm text-red-600">Sign Out</span></a>
+      </div>
+    </div>
+  </div>
+</header>
+<aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+  
+  <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+    <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-house text-lg min-w-[20px]"></i><span class="sidebar-text">Home</span></a>
+    <a href="{% url 'admin_products' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-box text-lg min-w-[20px]"></i><span class="sidebar-text">Products</span></a>
+    <a href="{% url 'admin_content' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-green-700 bg-green-50 hover:bg-green-100 transition"><i class="fa-solid fa-edit text-lg min-w-[20px]"></i><span class="sidebar-text">Content</span></a>
+    <a href="{% url 'admin_orders' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i><span class="sidebar-text">Orders</span></a>
+    <a href="{% url 'admin_reservations' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-calendar-check text-lg min-w-[20px]"></i><span class="sidebar-text">Reservations</span></a>
+    <a href="{% url 'admin_users' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-users text-lg min-w-[20px]"></i><span class="sidebar-text">Users</span></a>
+    <a href="{% url 'messages_inbox' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-message text-lg min-w-[20px]"></i><span class="sidebar-text">Messages</span>{% if unread_messages_count > 0 %}<span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">{{ unread_messages_count }}</span>{% endif %}</a>
+    <a href="/admin/" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-cog text-lg min-w-[20px]"></i><span class="sidebar-text">Django Admin</span></a>
+  </nav>
+</aside>
+<div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+<div id="mainContent" class="lg:ml-[280px] flex-1 flex flex-col min-h-screen pt-20 transition-all">
+  <div class="p-6">
+    <!-- Header -->
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold text-gray-800">Content Management</h1>
+      <p class="text-gray-600">Manage your website content, contact information, and feedback</p>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="mb-4 p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-700 border border-green-200{% elif message.tags == 'error' %}bg-red-100 text-red-700 border border-red-200{% else %}bg-blue-100 text-blue-700 border border-blue-200{% endif %}">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              {% if message.tags == 'success' %}
+                <i class="fas fa-check-circle"></i>
+              {% elif message.tags == 'error' %}
+                <i class="fas fa-exclamation-circle"></i>
+              {% else %}
+                <i class="fas fa-info-circle"></i>
+              {% endif %}
+              <span>{{ message }}</span>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" class="text-gray-500 hover:text-gray-700">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Tabs Navigation -->
+    <div class="bg-white rounded-lg shadow mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="flex -mb-px overflow-x-auto">
+          <button onclick="switchTab('about')" id="tab-about" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-green-500 text-green-600">
+            <i class="fas fa-info-circle mr-2"></i>About Page
+          </button>
+          <button onclick="switchTab('contact')" id="tab-contact" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+            <i class="fas fa-address-book mr-2"></i>Contact Information
+          </button>
+          <button onclick="switchTab('feedback')" id="tab-feedback" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+            <i class="fas fa-comments mr-2"></i>Feedback
+          </button>
+          <button onclick="switchTab('rating')" id="tab-rating" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 font-medium text-sm transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+            <i class="fas fa-star mr-2"></i>Rating
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Tab Panels -->
+    <div id="panel-about" class="tab-panel">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="mb-4">
+          <h2 class="text-xl font-semibold text-gray-800">About Page Management</h2>
+          <p class="text-sm text-gray-500 mt-1">Update About Page information here</p>
+        </div>
+
+        <!-- About Form -->
+        <form method="post" action="{% url 'admin_about_edit' %}" enctype="multipart/form-data" class="space-y-4" onsubmit="return confirm('Are you sure you want to save these changes?');">
+          {% csrf_token %}
+          <div>
+            <label for="about_title" class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+            <input id="about_title" name="title" type="text" value="{% if about_page %}{{ about_page.title }}{% endif %}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+          </div>
+          
+          <div>
+            <label for="about_body" class="block text-sm font-medium text-gray-700 mb-1">Content *</label>
+            <textarea id="about_body" name="body" rows="8" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">{% if about_page %}{{ about_page.body }}{% endif %}</textarea>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="about_mission" class="block text-sm font-medium text-gray-700 mb-1">Mission</label>
+              <textarea id="about_mission" name="mission" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">{% if about_page %}{{ about_page.mission }}{% endif %}</textarea>
+            </div>
+            <div>
+              <label for="about_vision" class="block text-sm font-medium text-gray-700 mb-1">Vision</label>
+              <textarea id="about_vision" name="vision" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">{% if about_page %}{{ about_page.vision }}{% endif %}</textarea>
+            </div>
+          </div>
+          
+          <div>
+            <label for="about_photo" class="block text-sm font-medium text-gray-700 mb-1">Nanay's Photo</label>
+            <input id="about_photo" name="photo" type="file" accept="image/*" class="w-full text-sm border border-gray-300 rounded-lg p-2">
+            {% if about_page.photo %}
+            <p class="text-xs text-gray-500 mt-1">Current: {{ about_page.photo.name }}</p>
+            {% endif %}
+          </div>
+          
+          <div class="flex items-center justify-between pt-4 border-t">
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition">
+              <i class="fas fa-save mr-2"></i>Save Changes
+            </button>
+            {% if about_page %}
+            <button type="button" onclick="if(confirm('Delete About page?')) document.getElementById('delete-about-form').submit();" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition">
+              <i class="fas fa-trash mr-2"></i>Delete
+            </button>
+            {% endif %}
+          </div>
+        </form>
+
+        {% if about_page %}
+        <form id="delete-about-form" method="post" action="{% url 'admin_about_delete' %}" class="hidden">
+          {% csrf_token %}
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Contact Tab Panel -->
+    <div id="panel-contact" class="tab-panel hidden">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="mb-4">
+          <h2 class="text-xl font-semibold text-gray-800">Contact Information Management</h2>
+          <p class="text-sm text-gray-500 mt-1">Update contact details and social media links</p>
+        </div>
+
+        <!-- Contact Form -->
+        <form method="post" action="{% url 'admin_contact_edit' %}" class="space-y-4" onsubmit="return confirm('Are you sure you want to save these changes?');">
+          {% csrf_token %}
+          <div>
+            <label for="contact_address" class="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+            <textarea id="contact_address" name="address" rows="3" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">{% if contact_info %}{{ contact_info.address }}{% endif %}</textarea>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="contact_phone" class="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+              <input id="contact_phone" name="phone" type="text" value="{% if contact_info %}{{ contact_info.phone }}{% endif %}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+            <div>
+              <label for="contact_email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input id="contact_email" name="email" type="email" value="{% if contact_info %}{{ contact_info.email }}{% endif %}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+          </div>
+          
+          <div>
+            <label for="contact_hours" class="block text-sm font-medium text-gray-700 mb-1">Business Hours</label>
+            <input id="contact_hours" name="hours" type="text" value="{% if contact_info %}{{ contact_info.hours }}{% endif %}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="e.g., Mon-Fri: 9AM-5PM">
+          </div>
+          
+          <div>
+            <label for="contact_map" class="block text-sm font-medium text-gray-700 mb-1">Google Maps Link</label>
+            <input id="contact_map" name="map_link" type="url" value="{% if contact_info %}{{ contact_info.map_link }}{% endif %}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="https://maps.google.com/...">
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label for="contact_fb" class="block text-sm font-medium text-gray-700 mb-1"><i class="fab fa-facebook mr-1"></i>Facebook</label>
+              <input id="contact_fb" name="facebook" type="url" value="{% if contact_info %}{{ contact_info.facebook }}{% endif %}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="https://facebook.com/...">
+            </div>
+            <div>
+              <label for="contact_ig" class="block text-sm font-medium text-gray-700 mb-1"><i class="fab fa-instagram mr-1"></i>Instagram</label>
+              <input id="contact_ig" name="instagram" type="url" value="{% if contact_info %}{{ contact_info.instagram }}{% endif %}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="https://instagram.com/...">
+            </div>
+            <div>
+              <label for="contact_tt" class="block text-sm font-medium text-gray-700 mb-1"><i class="fab fa-tiktok mr-1"></i>TikTok</label>
+              <input id="contact_tt" name="tiktok" type="url" value="{% if contact_info %}{{ contact_info.tiktok }}{% endif %}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="https://tiktok.com/@...">
+            </div>
+          </div>
+          
+          <div class="flex items-center justify-between pt-4 border-t">
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition">
+              <i class="fas fa-save mr-2"></i>Save Changes
+            </button>
+            {% if contact_info %}
+            <button type="button" onclick="if(confirm('Delete contact information?')) document.getElementById('delete-contact-form').submit();" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition">
+              <i class="fas fa-trash mr-2"></i>Delete
+            </button>
+            {% endif %}
+          </div>
+        </form>
+
+        {% if contact_info %}
+        <form id="delete-contact-form" method="post" action="{% url 'admin_contact_delete' %}" class="hidden">
+          {% csrf_token %}
+        </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Feedback Tab Panel -->
+    <div id="panel-feedback" class="tab-panel hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Feedback from Users -->
+        <div class="bg-white rounded-lg shadow">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-gray-800">
+                <i class="fas fa-user-check text-green-600 mr-2"></i>Feedback from Users
+              </h2>
+              <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">{{ recent_user_feedback|length }} recent</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-1">Feedback submitted by registered users</p>
+          </div>
+          <div class="p-6">
+            {% if recent_user_feedback %}
+            <div class="space-y-4 max-h-96 overflow-y-auto">
+              {% for fb in recent_user_feedback %}
+              <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-semibold">
+                      {{ fb.sender.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                      <p class="font-medium text-gray-900 text-sm">{{ fb.sender.get_full_name|default:fb.sender.username }}</p>
+                      <p class="text-xs text-gray-500">{{ fb.created_at|date:"M d, Y H:i" }}</p>
+                    </div>
+                  </div>
+                  <form method="post" action="{% url 'admin_feedback_delete' fb.id %}" onsubmit="return confirm('Delete this feedback?');" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="text-red-500 hover:text-red-700 text-sm">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                </div>
+                {% if fb.category %}
+                <span class="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded mb-2">{{ fb.category }}</span>
+                {% endif %}
+                <p class="text-sm text-gray-700">{{ fb.body }}</p>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-inbox text-4xl mb-2"></i>
+              <p>No feedback from users yet</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Feedback from Guests -->
+        <div class="bg-white rounded-lg shadow">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-gray-800">
+                <i class="fas fa-user text-gray-600 mr-2"></i>Feedback from Guests
+              </h2>
+              <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">{{ recent_guest_feedback|length }} recent</span>
+            </div>
+            <p class="text-sm text-gray-500 mt-1">Feedback submitted by visitors</p>
+          </div>
+          <div class="p-6">
+            {% if recent_guest_feedback %}
+            <div class="space-y-4 max-h-96 overflow-y-auto">
+              {% for fb in recent_guest_feedback %}
+              <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-sm">
+                      <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                      <p class="font-medium text-gray-900 text-sm">{{ fb.guest_name|default:"Guest" }}</p>
+                      <p class="text-xs text-gray-500">{{ fb.guest_email }} • {{ fb.created_at|date:"M d, Y H:i" }}</p>
+                    </div>
+                  </div>
+                  <form method="post" action="{% url 'admin_feedback_delete' fb.id %}" onsubmit="return confirm('Delete this feedback?');" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="text-red-500 hover:text-red-700 text-sm">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                </div>
+                {% if fb.category %}
+                <span class="inline-block text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded mb-2">{{ fb.category }}</span>
+                {% endif %}
+                <p class="text-sm text-gray-700">{{ fb.body }}</p>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+              <i class="fas fa-inbox text-4xl mb-2"></i>
+              <p>No feedback from guests yet</p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rating Tab Panel -->
+    <div id="panel-rating" class="tab-panel hidden">
+      <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-800">
+                <i class="fas fa-star text-yellow-500 mr-2"></i>User Ratings
+              </h2>
+              <p class="text-sm text-gray-500 mt-1">Product and service ratings from customers</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">{{ recent_ratings|length }} recent</span>
+              <button id="deleteSelectedRatings" onclick="deleteSelectedRatings()" class="hidden bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                <i class="fas fa-trash mr-2"></i>Delete Selected
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="p-6">
+          {% if recent_ratings %}
+          <form id="ratingsForm" method="post" action="{% url 'admin_ratings_delete' %}">
+            {% csrf_token %}
+            <div class="space-y-4 max-h-[600px] overflow-y-auto">
+              {% for rating in recent_ratings %}
+              <div class="flex items-center gap-3">
+                <!-- Checkbox outside and centered -->
+                <div class="flex items-center justify-center">
+                  <input type="checkbox" name="rating_ids" value="{{ rating.id }}" class="rating-checkbox w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500" onchange="updateDeleteButton()">
+                </div>
+                
+                <!-- Rating Card -->
+                <div class="flex-1 border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer" onclick="openRatingModal({{ rating.id }})">
+                  <!-- User Info and Date -->
+                  <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-semibold">
+                        {{ rating.user.username|slice:":1"|upper }}
+                      </div>
+                      <div>
+                        <p class="font-medium text-gray-900 text-sm">{{ rating.user.get_full_name|default:rating.user.username }}</p>
+                        <p class="text-xs text-gray-500">Order #{{ rating.order.id }} • {{ rating.created_at|date:"M d, Y H:i" }}</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <div class="flex items-center gap-1 bg-yellow-50 px-3 py-1 rounded-lg">
+                        <i class="fas fa-star text-yellow-500 text-sm"></i>
+                        <span class="text-sm font-semibold text-gray-700">{{ rating.get_average_rating|floatformat:1 }}/5</span>
+                      </div>
+                      <button onclick="event.stopPropagation(); openRatingModal({{ rating.id }})" class="text-green-600 hover:text-green-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-green-50 transition">
+                        <i class="fas fa-eye mr-1"></i>View
+                      </button>
+                    </div>
+                  </div>
+
+              <!-- Rating Details -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <!-- Product Rating -->
+                <div class="bg-gray-50 rounded-lg p-3">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-medium text-gray-600">Product Quality</span>
+                    <div class="flex items-center gap-1">
+                      {% for i in "12345" %}
+                        {% if forloop.counter <= rating.product_rating %}
+                          <i class="fas fa-star text-yellow-400 text-xs"></i>
+                        {% else %}
+                          <i class="far fa-star text-gray-300 text-xs"></i>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                  {% if rating.product_comment %}
+                  <p class="text-xs text-gray-600 mt-1">{{ rating.product_comment }}</p>
+                  {% endif %}
+                </div>
+
+                <!-- Service Rating -->
+                <div class="bg-gray-50 rounded-lg p-3">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-medium text-gray-600">Service</span>
+                    <div class="flex items-center gap-1">
+                      {% for i in "12345" %}
+                        {% if forloop.counter <= rating.service_rating %}
+                          <i class="fas fa-star text-yellow-400 text-xs"></i>
+                        {% else %}
+                          <i class="far fa-star text-gray-300 text-xs"></i>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                  {% if rating.service_comment %}
+                  <p class="text-xs text-gray-600 mt-1">{{ rating.service_comment }}</p>
+                  {% endif %}
+                </div>
+
+                <!-- Delivery Rating (if applicable) -->
+                {% if rating.order.delivery and rating.delivery_rating %}
+                <div class="bg-gray-50 rounded-lg p-3">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-medium text-gray-600">Delivery</span>
+                    <div class="flex items-center gap-1">
+                      {% for i in "12345" %}
+                        {% if forloop.counter <= rating.delivery_rating %}
+                          <i class="fas fa-star text-yellow-400 text-xs"></i>
+                        {% else %}
+                          <i class="far fa-star text-gray-300 text-xs"></i>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                  {% if rating.delivery_comment %}
+                  <p class="text-xs text-gray-600 mt-1">{{ rating.delivery_comment }}</p>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Pickup Speed Rating (if applicable) -->
+                {% if not rating.order.delivery and rating.pickup_speed_rating %}
+                <div class="bg-gray-50 rounded-lg p-3">
+                  <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-medium text-gray-600">Pickup Speed</span>
+                    <div class="flex items-center gap-1">
+                      {% for i in "12345" %}
+                        {% if forloop.counter <= rating.pickup_speed_rating %}
+                          <i class="fas fa-star text-yellow-400 text-xs"></i>
+                        {% else %}
+                          <i class="far fa-star text-gray-300 text-xs"></i>
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+
+              <!-- Overall Comment -->
+              {% if rating.overall_comment %}
+              <div class="bg-blue-50 rounded-lg p-3 mt-2">
+                <p class="text-xs font-medium text-blue-900 mb-1"><i class="fas fa-comment-dots mr-1"></i>Overall Experience</p>
+                <p class="text-xs text-blue-800">{{ rating.overall_comment }}</p>
+              </div>
+              {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          </form>
+          {% else %}
+          <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-star-half-alt text-4xl mb-2"></i>
+            <p>No ratings submitted yet</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Rating Details Modal -->
+<div id="ratingModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <!-- Modal Header -->
+    <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+      <h3 class="text-xl font-bold text-gray-900">
+        <i class="fas fa-star text-yellow-500 mr-2"></i>Rating Details
+      </h3>
+      <button onclick="closeRatingModal()" class="text-gray-400 hover:text-gray-600 transition">
+        <i class="fas fa-times text-2xl"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div id="modalContent" class="p-6">
+      <!-- Content will be loaded dynamically -->
+      <div class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden rating data for modal -->
+<div id="ratingsData" class="hidden">
+  {% for rating in recent_ratings %}
+  <div id="rating-data-{{ rating.id }}" 
+       data-user-name="{{ rating.user.get_full_name|default:rating.user.username }}"
+       data-user-initial="{{ rating.user.username|slice:":1"|upper }}"
+       data-user-photo="{% if rating.user.userprofile.profile_picture %}{{ rating.user.userprofile.profile_picture.url }}{% endif %}"
+       data-order-id="{{ rating.order.id }}"
+       data-order-date="{{ rating.order.created_at|date:'F d, Y' }}"
+       data-order-time="{{ rating.order.created_at|date:'g:i A' }}"
+       data-order-type="{% if rating.order.delivery %}Delivery{% else %}Pickup{% endif %}"
+       data-rating-date="{{ rating.created_at|date:'F d, Y g:i A' }}"
+       data-average-rating="{{ rating.get_average_rating|floatformat:1 }}"
+       data-product-rating="{{ rating.product_rating }}"
+       data-product-comment="{{ rating.product_comment|default:'' }}"
+       data-service-rating="{{ rating.service_rating }}"
+       data-service-comment="{{ rating.service_comment|default:'' }}"
+       data-delivery-rating="{{ rating.delivery_rating|default:'' }}"
+       data-delivery-comment="{{ rating.delivery_comment|default:'' }}"
+       data-pickup-rating="{{ rating.pickup_speed_rating|default:'' }}"
+       data-overall-comment="{{ rating.overall_comment|default:'' }}">
+    <!-- Order Items -->
+    <div class="order-items">
+      {% for item in rating.order.items.all %}
+      <div class="item" 
+           data-name="{{ item.product.name }}" 
+           data-quantity="{{ item.quantity }}" 
+           data-price="{{ item.price }}"
+           data-image="{% if item.product.image %}{{ item.product.image.url }}{% endif %}"></div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Scripts -->
+<script>
+// Tab switching functionality
+function switchTab(tabName) {
+  // Hide all panels
+  document.querySelectorAll('.tab-panel').forEach(panel => {
+    panel.classList.add('hidden');
+  });
+  
+  // Remove active state from all buttons
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.classList.remove('border-green-500', 'text-green-600');
+    button.classList.add('border-transparent', 'text-gray-500');
+  });
+  
+  // Show selected panel
+  document.getElementById('panel-' + tabName).classList.remove('hidden');
+  
+  // Add active state to selected button
+  const activeButton = document.getElementById('tab-' + tabName);
+  activeButton.classList.remove('border-transparent', 'text-gray-500');
+  activeButton.classList.add('border-green-500', 'text-green-600');
+}
+
+// Check URL parameter for tab on page load
+document.addEventListener('DOMContentLoaded', function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const tab = urlParams.get('tab');
+  if (tab) {
+    switchTab(tab);
+  }
+});
+
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const mainContent = document.getElementById('mainContent');
+if (sidebarToggle && sidebar && overlay && mainContent) {
+  sidebarToggle.addEventListener('click', function() {
+    if (window.innerWidth < 1024) {
+      sidebar.classList.toggle('show');
+      overlay.classList.toggle('hidden');
+    } else {
+      sidebar.classList.toggle('collapsed');
+      mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '80px' : '280px';
+    }
+  });
+  overlay.addEventListener('click', function() {
+    sidebar.classList.remove('show');
+    overlay.classList.add('hidden');
+  });
+  window.addEventListener('resize', function() {
+    if (window.innerWidth >= 1024) {
+      overlay.classList.add('hidden');
+      sidebar.classList.remove('show');
+      mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '80px' : '280px';
+    } else {
+      sidebar.classList.remove('collapsed');
+      mainContent.style.marginLeft = '0';
+    }
+  });
+}
+function toggleDropdown(id) {
+  const dropdown = document.getElementById(id);
+  const allDropdowns = document.querySelectorAll('.dropdown-menu');
+  allDropdowns.forEach(d => { if (d.id !== id) d.classList.remove('show'); });
+  dropdown.classList.toggle('show');
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.relative')) {
+    document.querySelectorAll('.dropdown-menu').forEach(d => { d.classList.remove('show'); });
+  }
+});
+
+    // In-page search and highlight functionality
+    const pageSearchInput = document.getElementById('pageSearchInput');
+    const clearPageSearch = document.getElementById('clearPageSearch');
+    const searchCounter = document.getElementById('searchCounter');
+    let currentHighlights = [];
+    let currentMatchIndex = 0;
+
+    function removeHighlights() {
+      currentHighlights.forEach(highlight => {
+        const parent = highlight.parentNode;
+        parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+        parent.normalize();
+      });
+      currentHighlights = [];
+      currentMatchIndex = 0;
+      searchCounter.classList.add('hidden');
+    }
+
+    function highlightText(searchTerm) {
+      removeHighlights();
+      
+      if (!searchTerm || searchTerm.trim() === '') {
+        return;
+      }
+
+      const mainContent = document.getElementById('mainContent');
+      if (!mainContent) return;
+
+      const walker = document.createTreeWalker(
+        mainContent,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: function(node) {
+            if (node.parentElement.tagName === 'SCRIPT' || 
+                node.parentElement.tagName === 'STYLE' ||
+                node.parentElement.classList.contains('highlight-match')) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      );
+
+      const nodesToHighlight = [];
+      let node;
+      
+      while (node = walker.nextNode()) {
+        const text = node.textContent;
+        const lowerText = text.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        if (lowerText.includes(lowerSearch)) {
+          nodesToHighlight.push(node);
+        }
+      }
+
+      nodesToHighlight.forEach(textNode => {
+        const text = textNode.textContent;
+        const lowerText = text.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        let lastIndex = 0;
+        const fragment = document.createDocumentFragment();
+        
+        let index = lowerText.indexOf(lowerSearch);
+        while (index !== -1) {
+          if (index > lastIndex) {
+            fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+          }
+          
+          const mark = document.createElement('mark');
+          mark.className = 'highlight-match';
+          mark.style.backgroundColor = '#fef08a';
+          mark.style.padding = '2px 0';
+          mark.style.borderRadius = '2px';
+          mark.textContent = text.substring(index, index + searchTerm.length);
+          fragment.appendChild(mark);
+          currentHighlights.push(mark);
+          
+          lastIndex = index + searchTerm.length;
+          index = lowerText.indexOf(lowerSearch, lastIndex);
+        }
+        
+        if (lastIndex < text.length) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+        
+        textNode.parentNode.replaceChild(fragment, textNode);
+      });
+
+      if (currentHighlights.length > 0) {
+        searchCounter.textContent = `${currentHighlights.length} found`;
+        searchCounter.classList.remove('hidden');
+        
+        if (currentHighlights[0]) {
+          currentHighlights[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          currentHighlights[0].style.backgroundColor = '#fbbf24';
+        }
+      }
+    }
+
+    pageSearchInput.addEventListener('input', function() {
+      const searchTerm = this.value.trim();
+      
+      if (searchTerm) {
+        clearPageSearch.classList.remove('hidden');
+        highlightText(searchTerm);
+      } else {
+        clearPageSearch.classList.add('hidden');
+        removeHighlights();
+      }
+    });
+
+    clearPageSearch.addEventListener('click', function() {
+      pageSearchInput.value = '';
+      clearPageSearch.classList.add('hidden');
+      removeHighlights();
+      pageSearchInput.focus();
+    });
+
+    pageSearchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && currentHighlights.length > 0) {
+        e.preventDefault();
+        
+        if (currentHighlights[currentMatchIndex]) {
+          currentHighlights[currentMatchIndex].style.backgroundColor = '#fef08a';
+        }
+        
+        currentMatchIndex = (currentMatchIndex + 1) % currentHighlights.length;
+        
+        if (currentHighlights[currentMatchIndex]) {
+          currentHighlights[currentMatchIndex].style.backgroundColor = '#fbbf24';
+          currentHighlights[currentMatchIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        searchCounter.textContent = `${currentMatchIndex + 1} of ${currentHighlights.length}`;
+      }
+    });
+
+// Rating deletion functions
+function updateDeleteButton() {
+  const checkboxes = document.querySelectorAll('.rating-checkbox:checked');
+  const deleteButton = document.getElementById('deleteSelectedRatings');
+  
+  if (checkboxes.length > 0) {
+    deleteButton.classList.remove('hidden');
+  } else {
+    deleteButton.classList.add('hidden');
+  }
+}
+
+function deleteSelectedRatings() {
+  const checkboxes = document.querySelectorAll('.rating-checkbox:checked');
+  
+  if (checkboxes.length === 0) {
+    alert('Please select at least one rating to delete.');
+    return;
+  }
+  
+  const count = checkboxes.length;
+  const confirmMessage = `Are you sure you want to delete ${count} rating${count > 1 ? 's' : ''}? This action cannot be undone.`;
+  
+  if (confirm(confirmMessage)) {
+    document.getElementById('ratingsForm').submit();
+  }
+}
+
+// Rating Modal Functions
+function openRatingModal(ratingId) {
+  const modal = document.getElementById('ratingModal');
+  const modalContent = document.getElementById('modalContent');
+  const ratingData = document.getElementById('rating-data-' + ratingId);
+  
+  if (!ratingData) {
+    console.error('Rating data not found for ID:', ratingId);
+    return;
+  }
+  
+  // Get data attributes
+  const userName = ratingData.dataset.userName;
+  const userInitial = ratingData.dataset.userInitial;
+  const userPhoto = ratingData.dataset.userPhoto;
+  const orderId = ratingData.dataset.orderId;
+  const orderDate = ratingData.dataset.orderDate;
+  const orderTime = ratingData.dataset.orderTime;
+  const orderType = ratingData.dataset.orderType;
+  const ratingDate = ratingData.dataset.ratingDate;
+  const averageRating = ratingData.dataset.averageRating;
+  const productRating = ratingData.dataset.productRating;
+  const productComment = ratingData.dataset.productComment;
+  const serviceRating = ratingData.dataset.serviceRating;
+  const serviceComment = ratingData.dataset.serviceComment;
+  const deliveryRating = ratingData.dataset.deliveryRating;
+  const deliveryComment = ratingData.dataset.deliveryComment;
+  const pickupRating = ratingData.dataset.pickupRating;
+  const overallComment = ratingData.dataset.overallComment;
+  
+  // Get order items
+  const orderItemsDiv = ratingData.querySelector('.order-items');
+  const items = orderItemsDiv.querySelectorAll('.item');
+  let itemsHTML = '';
+  items.forEach(item => {
+    const name = item.dataset.name;
+    const quantity = item.dataset.quantity;
+    const price = item.dataset.price;
+    const image = item.dataset.image;
+    itemsHTML += `
+      <div class="flex items-center gap-4 py-3 border-b border-gray-100 last:border-0">
+        ${image ? 
+          `<img src="${image}" alt="${name}" class="w-16 h-16 rounded-lg object-cover shadow-sm border border-gray-200">` :
+          `<div class="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center">
+            <i class="fas fa-image text-gray-400"></i>
+          </div>`
+        }
+        <div class="flex-1">
+          <p class="font-medium text-gray-900">${name}</p>
+          <p class="text-sm text-gray-500">Quantity: ${quantity}</p>
+        </div>
+        <p class="font-semibold text-gray-900">₱${parseFloat(price).toFixed(2)}</p>
+      </div>
+    `;
+  });
+  
+  // Generate star rating HTML
+  function generateStars(rating) {
+    let starsHTML = '';
+    for (let i = 1; i <= 5; i++) {
+      if (i <= rating) {
+        starsHTML += '<i class="fas fa-star text-yellow-400"></i>';
+      } else {
+        starsHTML += '<i class="far fa-star text-gray-300"></i>';
+      }
+    }
+    return starsHTML;
+  }
+  
+  // Build modal content
+  let content = `
+    <!-- User Header -->
+    <div class="bg-gradient-to-r from-green-50 to-teal-50 rounded-lg p-6 mb-6">
+      <div class="flex items-center gap-4 mb-4">
+        ${userPhoto ? 
+          `<img src="${userPhoto}" alt="${userName}" class="w-16 h-16 rounded-full object-cover shadow-lg border-2 border-white">` :
+          `<div class="w-16 h-16 rounded-full bg-green-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg">${userInitial}</div>`
+        }
+        <div class="flex-1">
+          <h4 class="text-2xl font-bold text-gray-900">${userName}</h4>
+          <p class="text-sm text-gray-600 mt-1">
+            <i class="fas fa-calendar mr-1"></i>Rated on ${ratingDate}
+          </p>
+        </div>
+        <div class="text-right">
+          <div class="flex items-center gap-2 bg-yellow-100 px-4 py-2 rounded-lg">
+            <i class="fas fa-star text-yellow-500 text-xl"></i>
+            <span class="text-3xl font-bold text-gray-900">${averageRating}</span>
+            <span class="text-gray-600">/5</span>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">Average Rating</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Information -->
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <h5 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+        <i class="fas fa-receipt text-green-600 mr-2"></i>Order Information
+      </h5>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="text-xs text-gray-500 mb-1">Order Number</p>
+          <p class="text-lg font-bold text-gray-900">#${orderId}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="text-xs text-gray-500 mb-1">Order Date & Time</p>
+          <p class="font-semibold text-gray-900">${orderDate}</p>
+          <p class="text-sm text-gray-600">${orderTime}</p>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4">
+          <p class="text-xs text-gray-500 mb-1">Order Type</p>
+          <p class="text-lg font-bold ${orderType === 'Delivery' ? 'text-blue-600' : 'text-purple-600'}">
+            <i class="fas fa-${orderType === 'Delivery' ? 'truck' : 'shopping-bag'} mr-1"></i>${orderType}
+          </p>
+        </div>
+      </div>
+      
+      <!-- Products Ordered -->
+      <div class="mt-4">
+        <p class="text-sm font-semibold text-gray-700 mb-3">Products Ordered:</p>
+        <div class="bg-gray-50 rounded-lg p-4">
+          ${itemsHTML}
+        </div>
+      </div>
+    </div>
+
+    <!-- Rating Details -->
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+      <h5 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
+        <i class="fas fa-star-half-alt text-yellow-500 mr-2"></i>Detailed Ratings
+      </h5>
+      
+      <div class="space-y-4">
+        <!-- Product Quality -->
+        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-box text-orange-600"></i>
+              <span class="font-semibold text-gray-900">Product Quality</span>
+            </div>
+            <div class="flex items-center gap-2">
+              ${generateStars(productRating)}
+              <span class="font-bold text-gray-900 ml-2">${productRating}/5</span>
+            </div>
+          </div>
+          ${productComment ? `<p class="text-sm text-gray-700 mt-2 pl-6 italic">"${productComment}"</p>` : '<p class="text-sm text-gray-500 pl-6 italic">No comment provided</p>'}
+        </div>
+
+        <!-- Service -->
+        <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-concierge-bell text-blue-600"></i>
+              <span class="font-semibold text-gray-900">Service</span>
+            </div>
+            <div class="flex items-center gap-2">
+              ${generateStars(serviceRating)}
+              <span class="font-bold text-gray-900 ml-2">${serviceRating}/5</span>
+            </div>
+          </div>
+          ${serviceComment ? `<p class="text-sm text-gray-700 mt-2 pl-6 italic">"${serviceComment}"</p>` : '<p class="text-sm text-gray-500 pl-6 italic">No comment provided</p>'}
+        </div>
+
+        ${deliveryRating ? `
+        <!-- Delivery -->
+        <div class="bg-gradient-to-r from-green-50 to-teal-50 rounded-lg p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-truck text-green-600"></i>
+              <span class="font-semibold text-gray-900">Delivery</span>
+            </div>
+            <div class="flex items-center gap-2">
+              ${generateStars(deliveryRating)}
+              <span class="font-bold text-gray-900 ml-2">${deliveryRating}/5</span>
+            </div>
+          </div>
+          ${deliveryComment ? `<p class="text-sm text-gray-700 mt-2 pl-6 italic">"${deliveryComment}"</p>` : '<p class="text-sm text-gray-500 pl-6 italic">No comment provided</p>'}
+        </div>
+        ` : ''}
+
+        ${pickupRating ? `
+        <!-- Pickup Speed -->
+        <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-clock text-purple-600"></i>
+              <span class="font-semibold text-gray-900">Pickup Speed</span>
+            </div>
+            <div class="flex items-center gap-2">
+              ${generateStars(pickupRating)}
+              <span class="font-bold text-gray-900 ml-2">${pickupRating}/5</span>
+            </div>
+          </div>
+        </div>
+        ` : ''}
+      </div>
+    </div>
+
+    ${overallComment ? `
+    <!-- Overall Feedback -->
+    <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-lg p-6">
+      <h5 class="text-lg font-bold text-gray-900 mb-3 flex items-center">
+        <i class="fas fa-comment-dots text-indigo-600 mr-2"></i>Overall Experience
+      </h5>
+      <p class="text-gray-800 leading-relaxed italic">"${overallComment}"</p>
+    </div>
+    ` : ''}
+  `;
+  
+  // Set content and show modal
+  modalContent.innerHTML = content;
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRatingModal() {
+  const modal = document.getElementById('ratingModal');
+  modal.classList.add('hidden');
+  document.body.style.overflow = 'auto';
+}
+
+// Close modal when clicking outside
+document.getElementById('ratingModal')?.addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeRatingModal();
+  }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeRatingModal();
+  }
+});
+
+</script>
+
+</body>
+</html>

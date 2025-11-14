@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - Nanay's Kakanin</title>
+  <link rel="stylesheet" href="{% static 'kakanin/dist/output.css' %}">
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+  <style>
+    /* Input styling */
+    input {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      outline: none;
+    }
+    input:focus {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
+    }
+    
+    /* Password toggle button styling */
+    .password-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    
+    .password-toggle:hover {
+      background-color: rgba(34, 197, 94, 0.1);
+    }
+    
+    .password-toggle:active {
+      background-color: rgba(34, 197, 94, 0.2);
+    }
+    
+    .toggle-icon {
+      width: 20px;
+      height: 20px;
+      color: #22c55e; /* Green color to match your theme */
+      transition: color 0.2s;
+    }
+    
+    .password-toggle:hover .toggle-icon {
+      color: #16a34a; /* Darker green on hover */
+    }
+  </style>
+</head>
+<body class="bg-green-100 flex items-center justify-center h-screen">
+
+  <div class="bg-white p-8 rounded-lg shadow-lg w-96">
+    <h2 class="text-2xl font-bold text-center text-green-600 mb-6">Login</h2>
+
+    <!-- Error Messages -->
+    {% if messages %}
+      {% for message in messages %}
+        <div class="mb-4 p-3 rounded-lg {% if message.tags == 'error' %}bg-red-100 border border-red-400 text-red-700{% else %}bg-green-100 border border-green-400 text-green-700{% endif %}">
+          <div class="flex items-center gap-2">
+            {% if message.tags == 'error' %}
+              <i class="fas fa-exclamation-circle"></i>
+            {% else %}
+              <i class="fas fa-check-circle"></i>
+            {% endif %}
+            <span class="text-sm">{{ message }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="POST" class="space-y-4">
+      {% csrf_token %}
+
+      <!-- Username -->
+      <div>
+        <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700">Username</label>
+        {{ form.username }}
+      </div>
+
+      <!-- Password with show/hide -->
+      <div>
+        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700">Password</label>
+        <div class="relative">
+          {{ form.password }}
+          <button type="button" onclick="togglePassword('{{ form.password.id_for_label }}', this)" 
+            class="password-toggle absolute inset-y-0 right-0 px-3">
+            <!-- Google-style visibility icon -->
+            <svg class="toggle-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M0 0h24v24H0V0z" fill="none"/>
+              <path d="M12 6a9.77 9.77 0 0 1 8.82 5.5 9.77 9.77 0 0 1-8.82 5.5A9.77 9.77 0 0 1 3.18 11.5 9.77 9.77 0 0 1 12 6m0-2C7 4 2.73 7.11 1 11.5 2.73 15.89 7 19 12 19s9.27-3.11 11-7.5C21.27 7.11 17 4 12 4zm0 5a2.5 2.5 0 0 1 0 5 2.5 2.5 0 0 1 0-5m0-2c-2.48 0-4.5 2.02-4.5 4.5S9.52 16 12 16s4.5-2.02 4.5-4.5S14.48 7 12 7z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors">
+        Login
+      </button>
+    </form>
+
+    <p class="text-center text-sm text-gray-700 mt-4">
+      Don't have an account? 
+      <a href="{% url 'signup' %}" class="text-green-600 hover:underline">Sign Up</a>
+    </p>
+
+    <p class="text-center text-sm text-gray-700 mt-2">
+      <a href="{% url 'home' %}" class="text-gray-600 hover:underline">← Back to Home</a>
+    </p>
+  </div>
+
+  <!-- Toggle Password Script -->
+  <script>
+    function togglePassword(fieldId, button) {
+      const field = document.getElementById(fieldId);
+      const icon = button.querySelector('svg');
+      
+      if (field.type === "password") {
+        field.type = "text";
+        // Change to visibility off icon
+        icon.innerHTML = `
+          <path d="M0 0h24v24H0V0zm0 0h24v24H0V0zm0 0h24v24H0V0zm0 0h24v24H0V0z" fill="none"/>
+          <path d="M12 6a9.77 9.77 0 0 1 8.82 5.5C19.17 14.87 15.79 17 12 17s-7.17-2.13-8.82-5.5A9.77 9.77 0 0 1 12 6m0-2C7 4 2.73 7.11 1 11.5 2.73 15.89 7 19 12 19s9.27-3.11 11-7.5C21.27 7.11 17 4 12 4zm0 5a2.5 2.5 0 0 1 0 5 2.5 2.5 0 0 1 0-5m0-2c-2.48 0-4.5 2.02-4.5 4.5S9.52 16 12 16s4.5-2.02 4.5-4.5S14.48 7 12 7z"/>
+          <path d="M15.5 11.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z"/>
+        `;
+      } else {
+        field.type = "password";
+        // Change back to visibility icon
+        icon.innerHTML = `
+          <path d="M0 0h24v24H0V0z" fill="none"/>
+          <path d="M12 6a9.77 9.77 0 0 1 8.82 5.5 9.77 9.77 0 0 1-8.82 5.5A9.77 9.77 0 0 1 3.18 11.5 9.77 9.77 0 0 1 12 6m0-2C7 4 2.73 7.11 1 11.5 2.73 15.89 7 19 12 19s9.27-3.11 11-7.5C21.27 7.11 17 4 12 4zm0 5a2.5 2.5 0 0 1 0 5 2.5 2.5 0 0 1 0-5m0-2c-2.48 0-4.5 2.02-4.5 4.5S9.52 16 12 16s4.5-2.02 4.5-4.5S14.48 7 12 7z"/>
+        `;
+      }
+    }
+  </script>
+
+</body>
+</html>

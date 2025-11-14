@@ -1,0 +1,522 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messages - Nanay's Kakanin</title>
+  <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .message-menu {
+      display: none;
+      position: absolute;
+      z-index: 1000;
+    }
+    .message-menu.show {
+      display: block;
+    }
+    .message-wrapper:hover .message-actions {
+      opacity: 1;
+    }
+    .message-actions {
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+  </style>
+</head>
+<body class="bg-green-50 h-full overflow-hidden">
+
+  <!-- Top Navbar -->
+  <header class="h-16 bg-white shadow-sm flex items-center px-4 lg:px-6 border-b border-gray-200">
+    <div class="flex items-center gap-3">
+      <a href="{% url 'messages_inbox' %}" 
+         class="text-green-600 hover:text-green-700"
+         title="Back to Messages">
+        <i class="fa-solid fa-arrow-left text-xl"></i>
+      </a>
+      <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-8 h-8 rounded-full">
+      <h1 class="text-xl font-bold text-green-600">Messages</h1>
+    </div>
+  </header>
+
+  <!-- Main Layout: Sidebar + Chat -->
+  <div class="flex h-[calc(100vh-4rem)]">
+    
+    <!-- Left Sidebar - Conversations List -->
+    <div class="w-80 bg-white border-r border-gray-200 flex flex-col">
+      <!-- Sidebar Header -->
+      <div class="p-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-800">
+          <i class="fas fa-comments text-green-600"></i> Conversations
+        </h2>
+      </div>
+      
+      <!-- Conversations List -->
+      <div class="flex-1 overflow-y-auto">
+        {% if all_threads %}
+          {% for thread in all_threads %}
+            <a href="{% url 'message_thread' thread.other_user.id %}" 
+               class="flex items-center gap-3 p-4 hover:bg-gray-50 border-b border-gray-100 transition-colors {% if thread.other_user.id == other_user.id %}bg-green-50{% endif %}">
+              <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold text-lg">
+                {% if not request.user.is_superuser and thread.other_user.is_superuser %}
+                  N
+                {% else %}
+                  {{ thread.other_user.username|slice:":1"|upper }}
+                {% endif %}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="font-semibold text-gray-900 truncate">
+                  {% if not request.user.is_superuser and thread.other_user.is_superuser %}
+                    Nanay's Kakanin
+                  {% else %}
+                    {{ thread.other_user.get_full_name|default:thread.other_user.username }}
+                  {% endif %}
+                </div>
+                <div class="text-sm text-gray-500 truncate">
+                  {% if thread.last_message %}
+                    {{ thread.last_message.body|truncatewords:5 }}
+                  {% else %}
+                    No messages yet
+                  {% endif %}
+                </div>
+              </div>
+              {% if thread.unread_count > 0 %}
+                <span class="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  {{ thread.unread_count }}
+                </span>
+              {% endif %}
+            </a>
+          {% endfor %}
+        {% else %}
+          <div class="p-8 text-center text-gray-400">
+            <i class="fas fa-inbox text-4xl mb-2"></i>
+            <p>No conversations yet</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Right Side - Active Conversation -->
+    <div class="flex-1 flex flex-col bg-white">
+      
+      <!-- Chat Header -->
+      <div class="h-16 border-b border-gray-200 flex items-center px-6">
+        <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold">
+          {% if not request.user.is_superuser and other_user.is_superuser %}
+            N
+          {% else %}
+            {{ other_user.username|slice:":1"|upper }}
+          {% endif %}
+        </div>
+        <div class="ml-3">
+          <h3 class="font-semibold text-gray-900">
+            {% if request.user.is_superuser %}
+              {{ other_user.get_full_name|default:other_user.username }}
+            {% else %}
+              Nanay's Kakanin
+            {% endif %}
+          </h3>
+          <p class="text-xs text-gray-500">
+            {% if request.user.is_superuser %}
+              {{ other_user.email }}
+            {% else %}
+              Customer Support
+            {% endif %}
+          </p>
+        </div>
+      </div>
+
+      <!-- Messages Area -->
+      <div class="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50" id="messagesArea">
+        {% for m in messages_list %}
+          <div class="flex {% if m.sender.id == request.user.id %}justify-end{% else %}justify-start{% endif %} message-wrapper" data-message-id="{{ m.id }}">
+            <div class="max-w-[70%] relative group">
+              <!-- Avatar for received messages -->
+              {% if m.sender.id != request.user.id %}
+                <div class="flex items-start gap-2 mb-1">
+                  <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 text-xs font-bold">
+                    {{ m.sender.username|slice:":1"|upper }}
+                  </div>
+                  <div class="flex-1">
+                    <!-- Reply indicator -->
+                    {% if m.reply_to %}
+                      <div class="bg-gray-100 border-l-4 border-green-500 px-3 py-2 rounded mb-2 text-xs text-gray-600">
+                        <i class="fas fa-reply mr-1"></i> Replying to: {{ m.reply_to.body|truncatewords:10 }}
+                      </div>
+                    {% endif %}
+                    <div class="flex items-center gap-2">
+                      <div class="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm relative">
+                        {% if m.unsent_for_everyone %}
+                          <p class="text-sm text-gray-400 italic"><i class="fas fa-ban mr-1"></i> This message was unsent</p>
+                        {% else %}
+                          {% if m.image %}
+                            <a href="{{ m.image.url }}" target="_blank" class="block mb-2">
+                              <img src="{{ m.image.url }}" alt="Attachment" class="max-w-xs rounded-lg border border-gray-300 hover:opacity-90 transition">
+                            </a>
+                          {% endif %}
+                          {% if m.body %}
+                            <p class="text-sm text-gray-900 whitespace-pre-line">{{ m.body }}</p>
+                            {% if m.is_edited %}
+                              <p class="text-xs text-gray-400 mt-1"><i class="fas fa-edit"></i> Edited</p>
+                            {% endif %}
+                          {% endif %}
+                        {% endif %}
+                      </div>
+                      <!-- Three dots menu button (outside bubble) -->
+                      <div class="relative">
+                        <button onclick="toggleMessageMenu({{ m.id }})" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1.5 message-actions">
+                          <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div id="menu-{{ m.id }}" class="message-menu absolute left-0 top-8 bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-48 z-50">
+                          <button onclick="replyToMessage({{ m.id }}, '{{ m.body|escapejs }}')" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+                            <i class="fas fa-reply mr-2"></i> Reply
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1 ml-2">{{ m.created_at|date:"M d, h:i A" }}</p>
+                  </div>
+                </div>
+              {% else %}
+                <!-- Sent messages -->
+                <div class="flex items-start gap-2 mb-1 flex-row-reverse">
+                  <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                    {{ m.sender.username|slice:":1"|upper }}
+                  </div>
+                  <div class="flex-1">
+                    <!-- Reply indicator -->
+                    {% if m.reply_to %}
+                      <div class="bg-green-100 border-l-4 border-green-600 px-3 py-2 rounded mb-2 text-xs text-gray-700 text-right">
+                        <i class="fas fa-reply mr-1"></i> Replying to: {{ m.reply_to.body|truncatewords:10 }}
+                      </div>
+                    {% endif %}
+                    <div class="flex items-center gap-2 flex-row-reverse">
+                      <div class="bg-green-500 text-white rounded-2xl rounded-tr-none px-4 py-3 shadow-sm relative">
+                        {% if m.unsent_for_everyone %}
+                          <p class="text-sm text-white/70 italic"><i class="fas fa-ban mr-1"></i> This message was unsent</p>
+                        {% else %}
+                          {% if m.image %}
+                            <a href="{{ m.image.url }}" target="_blank" class="block mb-2">
+                              <img src="{{ m.image.url }}" alt="Attachment" class="max-w-xs rounded-lg border border-white/30 hover:opacity-90 transition">
+                            </a>
+                          {% endif %}
+                          {% if m.body %}
+                            <p class="text-sm whitespace-pre-line" id="message-body-{{ m.id }}">{{ m.body }}</p>
+                            {% if m.is_edited %}
+                              <p class="text-xs text-white/70 mt-1"><i class="fas fa-edit"></i> Edited</p>
+                            {% endif %}
+                          {% endif %}
+                        {% endif %}
+                      </div>
+                      <!-- Three dots menu button (outside bubble) -->
+                      <div class="relative">
+                        <button onclick="toggleMessageMenu({{ m.id }})" class="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-1.5 message-actions">
+                          <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div id="menu-{{ m.id }}" class="message-menu absolute right-0 top-8 bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-56 z-50">
+                          {% if not m.unsent_for_everyone %}
+                            <button onclick="openEditModal({{ m.id }}, '{{ m.body|escapejs }}')" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+                              <i class="fas fa-edit mr-2"></i> Edit
+                            </button>
+                          {% endif %}
+                          <button onclick="openUnsendModal({{ m.id }})" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+                            <i class="fas fa-undo mr-2"></i> Unsend
+                          </button>
+                          <button onclick="replyToMessage({{ m.id }}, '{{ m.body|escapejs }}')" class="w-full text-left px-4 py-2 hover:bg-gray-100 text-sm text-gray-700">
+                            <i class="fas fa-reply mr-2"></i> Reply
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <p class="text-xs text-green-600 mt-1 mr-2 text-right">{{ m.created_at|date:"M d, h:i A" }}</p>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <div class="flex items-center justify-center h-full">
+            <div class="text-center text-gray-400">
+              <i class="fas fa-comments text-6xl mb-3"></i>
+              <p class="text-lg">No messages yet</p>
+              <p class="text-sm">Start the conversation!</p>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Message Input -->
+      <div class="border-t border-gray-200 p-4 bg-white">
+        <!-- Reply indicator -->
+        <div id="replyIndicator" class="hidden mb-3 bg-green-50 border-l-4 border-green-500 px-4 py-2 rounded flex items-center justify-between">
+          <div>
+            <p class="text-sm font-semibold text-gray-700"><i class="fas fa-reply mr-1"></i> Replying to:</p>
+            <p class="text-xs text-gray-600" id="replyText"></p>
+          </div>
+          <button type="button" onclick="cancelReply()" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form method="post" enctype="multipart/form-data" id="messageForm">
+          {% csrf_token %}
+          <input type="hidden" id="replyToId" name="reply_to" value="">
+          
+          <!-- Image Preview -->
+          <div id="imagePreview" class="hidden mb-3">
+            <div class="relative inline-block">
+              <img id="previewImg" src="" alt="Preview" class="max-h-32 rounded-lg border border-gray-300">
+              <button type="button" onclick="removeImage()" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center">
+                <i class="fas fa-times text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <input type="file" name="image" id="imageInput" accept="image/*" class="hidden" onchange="previewImage(this)">
+            <button type="button" onclick="document.getElementById('imageInput').click()" 
+                    class="w-12 h-12 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full flex items-center justify-center transition-colors">
+              <i class="fas fa-image"></i>
+            </button>
+            <textarea name="body" 
+                      rows="1" 
+                      placeholder="Type your message..." 
+                      class="flex-1 px-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+                      onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.submit(); }"></textarea>
+            <button type="submit" 
+                    class="w-12 h-12 bg-green-600 hover:bg-green-700 text-white rounded-full flex items-center justify-center transition-colors">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Edit Modal -->
+      <div id="editModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+          <h3 class="text-lg font-bold text-gray-800 mb-4">Edit Message</h3>
+          <textarea id="editMessageBody" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none" rows="4"></textarea>
+          <div class="flex gap-3 mt-4">
+            <button onclick="saveEdit()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+              Save Changes
+            </button>
+            <button onclick="closeEditModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unsend Modal -->
+      <div id="unsendModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+          <h3 class="text-lg font-bold text-gray-800 mb-6">Who do you want to unsend this message for?</h3>
+          
+          <!-- Radio Options -->
+          <div class="space-y-4 mb-6">
+            <!-- Option 1: Unsend for Everyone -->
+            <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50">
+              <input type="radio" name="unsendOption" value="everyone" class="mt-1 w-5 h-5 text-blue-600 focus:ring-blue-500" checked>
+              <div class="flex-1">
+                <p class="font-semibold text-gray-800">Unsend for Everyone</p>
+                <p class="text-xs text-gray-600 mt-1">This message will be unsent for everyone in the chat. People may have already seen or forwarded it. Unsent messages can still be included in reports.</p>
+              </div>
+            </label>
+            
+            <!-- Option 2: Unsend for You -->
+            <label class="flex items-start gap-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50">
+              <input type="radio" name="unsendOption" value="me" class="mt-1 w-5 h-5 text-blue-600 focus:ring-blue-500">
+              <div class="flex-1">
+                <p class="font-semibold text-gray-800">Unsend for You</p>
+                <p class="text-xs text-gray-600 mt-1">This message will be removed for you. Others in the chat will still be able to see it.</p>
+              </div>
+            </label>
+          </div>
+          
+          <!-- Action Buttons -->
+          <div class="flex gap-3 justify-end">
+            <button onclick="closeUnsendModal()" class="px-6 py-2 text-blue-600 hover:bg-gray-100 rounded-lg font-medium">
+              Cancel
+            </button>
+            <button onclick="confirmUnsend()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+              Unsend
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        let currentEditMessageId = null;
+        let currentUnsendMessageId = null;
+        let currentReplyMessageId = null;
+
+        function getCSRFToken() {
+          return document.querySelector('[name=csrfmiddlewaretoken]').value;
+        }
+
+        function toggleMessageMenu(messageId) {
+          const menu = document.getElementById('menu-' + messageId);
+          // Close all other menus
+          document.querySelectorAll('.message-menu').forEach(m => {
+            if (m.id !== 'menu-' + messageId) {
+              m.classList.remove('show');
+            }
+          });
+          menu.classList.toggle('show');
+        }
+
+        // Close menus when clicking outside
+        document.addEventListener('click', function(e) {
+          if (!e.target.closest('.message-wrapper')) {
+            document.querySelectorAll('.message-menu').forEach(m => m.classList.remove('show'));
+          }
+        });
+
+        function openEditModal(messageId, currentBody) {
+          currentEditMessageId = messageId;
+          document.getElementById('editMessageBody').value = currentBody;
+          document.getElementById('editModal').classList.remove('hidden');
+          toggleMessageMenu(messageId);
+        }
+
+        function closeEditModal() {
+          document.getElementById('editModal').classList.add('hidden');
+          currentEditMessageId = null;
+        }
+
+        function saveEdit() {
+          const newBody = document.getElementById('editMessageBody').value.trim();
+          if (!newBody) {
+            alert('Message cannot be empty');
+            return;
+          }
+
+          fetch(`/messages/${currentEditMessageId}/edit/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCSRFToken(),
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `body=${encodeURIComponent(newBody)}`
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              location.reload();
+            } else {
+              alert(data.error || 'Failed to edit message');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+          });
+        }
+
+        function openUnsendModal(messageId) {
+          currentUnsendMessageId = messageId;
+          document.getElementById('unsendModal').classList.remove('hidden');
+          toggleMessageMenu(messageId);
+        }
+
+        function closeUnsendModal() {
+          document.getElementById('unsendModal').classList.add('hidden');
+          currentUnsendMessageId = null;
+          // Reset radio to default
+          document.querySelector('input[name="unsendOption"][value="everyone"]').checked = true;
+        }
+
+        function confirmUnsend() {
+          const selectedOption = document.querySelector('input[name="unsendOption"]:checked');
+          if (!selectedOption) {
+            alert('Please select an option');
+            return;
+          }
+          
+          const type = selectedOption.value;
+          
+          fetch(`/messages/${currentUnsendMessageId}/unsend/`, {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': getCSRFToken(),
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `unsend_type=${type}`
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              location.reload();
+            } else {
+              alert(data.error || 'Failed to unsend message');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred');
+          });
+        }
+
+        function replyToMessage(messageId, messageBody) {
+          currentReplyMessageId = messageId;
+          document.getElementById('replyToId').value = messageId;
+          document.getElementById('replyText').textContent = messageBody.substring(0, 50) + (messageBody.length > 50 ? '...' : '');
+          document.getElementById('replyIndicator').classList.remove('hidden');
+          toggleMessageMenu(messageId);
+          document.querySelector('textarea[name="body"]').focus();
+        }
+
+        function cancelReply() {
+          currentReplyMessageId = null;
+          document.getElementById('replyToId').value = '';
+          document.getElementById('replyIndicator').classList.add('hidden');
+        }
+
+        function previewImage(input) {
+          const preview = document.getElementById('imagePreview');
+          const previewImg = document.getElementById('previewImg');
+          
+          if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              previewImg.src = e.target.result;
+              preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
+          }
+        }
+
+        function removeImage() {
+          document.getElementById('imageInput').value = '';
+          document.getElementById('imagePreview').classList.add('hidden');
+        }
+
+        // Auto-scroll to bottom on page load
+        window.addEventListener('load', function() {
+          const messagesArea = document.getElementById('messagesArea');
+          if (messagesArea) {
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+          }
+        });
+      </script>
+
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,214 @@
+{% load static %}
+<!-- Top Navbar -->
+<header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+  <div class="flex items-center gap-4">
+    <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-3">
+      <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+      <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+    </a>
+    <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+      <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+    </button>
+  </div>
+  
+  <!-- Search Bar (Desktop) -->
+  <div class="hidden md:flex flex-1 max-w-xl mx-8">
+    <div class="relative w-full">
+      <input type="text" 
+             id="pageSearchInput"
+             placeholder="Search on this page..." 
+             class="w-full px-4 py-2 pl-10 pr-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+      <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+      <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        <span id="searchCounter" class="text-xs text-gray-500 hidden"></span>
+        <button type="button" id="clearPageSearch" class="text-gray-400 hover:text-gray-600 p-1 hidden">
+          <i class="fas fa-times text-sm"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="ml-auto flex items-center gap-2">
+    <!-- Search Icon (Mobile) -->
+    <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
+      <i class="fa-solid fa-search text-xl text-gray-600"></i>
+    </button>
+    
+    <!-- Notifications -->
+    <div class="relative">
+      <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+        <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+        {% if admin_unread_notifications_count > 0 %}
+          <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ admin_unread_notifications_count }}</span>
+        {% endif %}
+      </button>
+      <div id="notifDropdown" class="dropdown-menu hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+        <div class="px-4 py-3 border-b border-gray-200">
+          <p class="text-sm font-semibold text-gray-700">
+            {% if admin_unread_notifications_count > 0 %}
+              You have {{ admin_unread_notifications_count }} new notification{{ admin_unread_notifications_count|pluralize }}
+            {% else %}
+              No new notifications
+            {% endif %}
+          </p>
+        </div>
+        <div class="max-h-64 overflow-y-auto">
+          {% if admin_recent_notifications %}
+            {% for notif in admin_recent_notifications %}
+              <a href="{% url 'admin_mark_notification_read' notif.id %}" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                <i class="{% if 'Order' in notif.message %}fas fa-shopping-cart{% elif 'Reservation' in notif.message %}fas fa-calendar-check{% elif 'stock' in notif.message %}fas fa-box{% else %}fas fa-info-circle{% endif %} text-2xl text-green-600 mt-1"></i>
+                <div class="flex-1">
+                  <p class="text-sm text-gray-800">{{ notif.message|truncatewords:10 }}</p>
+                  <p class="text-xs text-gray-400 mt-1">{{ notif.created_at|timesince }} ago</p>
+                </div>
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="px-4 py-6 text-center text-gray-500 text-sm">
+              <i class="fas fa-bell-slash text-2xl mb-2"></i>
+              <p>No notifications</p>
+            </div>
+          {% endif %}
+        </div>
+        <div class="px-4 py-2 border-t border-gray-200">
+          <a href="{% url 'admin_notifications' %}" class="text-sm text-primary hover:underline">Show all notifications</a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Profile -->
+    <div class="relative">
+      <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+        <span class="hidden md:block text-sm font-medium text-secondary">{{ user.username }}</span>
+        <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+      </button>
+      <div id="profileDropdown" class="dropdown-menu hidden absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50">
+        <div class="px-4 py-3 border-b border-gray-200">
+          <h6 class="text-sm font-semibold text-gray-800">{{ user.username }}</h6>
+          <span class="text-xs text-gray-500">{{ user.email }}</span>
+        </div>
+        <a href="/admin/" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors">
+          <i class="bi bi-gear text-lg text-gray-600"></i>
+          <span class="text-sm text-gray-700">Django Admin</span>
+        </a>
+        <div class="border-t border-gray-200 my-1"></div>
+        <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors">
+          <i class="bi bi-box-arrow-right text-lg text-red-600"></i>
+          <span class="text-sm text-red-600">Sign Out</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Sidebar -->
+<aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+  <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+    <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl {% if request.resolver_match.url_name == 'admin_dashboard' %}text-green-700 bg-green-50{% else %}text-gray-600 hover:text-green-700 hover:bg-green-50{% endif %} transition">
+      <i class="fa-solid fa-house text-lg min-w-[20px]"></i>
+      <span class="sidebar-text">Home</span>
+    </a>
+    <a href="{% url 'admin_products' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl {% if 'product' in request.resolver_match.url_name %}text-green-700 bg-green-50{% else %}text-gray-600 hover:text-green-700 hover:bg-green-50{% endif %} transition">
+      <i class="fa-solid fa-box text-lg min-w-[20px]"></i>
+      <span class="sidebar-text">Products</span>
+    </a>
+    <a href="{% url 'admin_content' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl {% if request.resolver_match.url_name == 'admin_content' or request.resolver_match.url_name == 'admin_feedback' %}text-green-700 bg-green-50{% else %}text-gray-600 hover:text-green-700 hover:bg-green-50{% endif %} transition">
+      <i class="fa-solid fa-edit text-lg min-w-[20px]"></i>
+      <span class="sidebar-text">Content</span>
+    </a>
+    <a href="{% url 'admin_orders' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl {% if 'order' in request.resolver_match.url_name %}text-green-700 bg-green-50{% else %}text-gray-600 hover:text-green-700 hover:bg-green-50{% endif %} transition">
+      <i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i>
+      <span class="sidebar-text">Orders</span>
+    </a>
+    <a href="{% url 'admin_reservations' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl {% if 'reservation' in request.resolver_match.url_name %}text-green-700 bg-green-50{% else %}text-gray-600 hover:text-green-700 hover:bg-green-50{% endif %} transition">
+      <i class="fa-solid fa-calendar-check text-lg min-w-[20px]"></i>
+      <span class="sidebar-text">Reservations</span>
+    </a>
+    <a href="{% url 'admin_users' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl {% if 'user' in request.resolver_match.url_name %}text-green-700 bg-green-50{% else %}text-gray-600 hover:text-green-700 hover:bg-green-50{% endif %} transition">
+      <i class="fa-solid fa-users text-lg min-w-[20px]"></i>
+      <span class="sidebar-text">Users</span>
+    </a>
+    <a href="{% url 'messages_inbox' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition relative">
+      <i class="fa-solid fa-message text-lg min-w-[20px]"></i>
+      <span class="sidebar-text">Messages</span>
+      {% if unread_messages_count > 0 %}
+        <span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+          {{ unread_messages_count }}
+        </span>
+      {% endif %}
+    </a>
+    <a href="/admin/" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+      <i class="fa-solid fa-cog text-lg min-w-[20px]"></i>
+      <span class="sidebar-text">Django Admin</span>
+    </a>
+  </nav>
+</aside>
+
+<!-- Overlay for mobile -->
+<div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+
+<script>
+  // Dropdown toggle function
+  function toggleDropdown(id) {
+    const dropdown = document.getElementById(id);
+    const allDropdowns = document.querySelectorAll('.dropdown-menu');
+    
+    // Close all other dropdowns
+    allDropdowns.forEach(d => {
+      if (d.id !== id) {
+        d.classList.add('hidden');
+      }
+    });
+    
+    // Toggle current dropdown
+    dropdown.classList.toggle('hidden');
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(event) {
+    const dropdowns = document.querySelectorAll('.dropdown-menu');
+    const buttons = document.querySelectorAll('[onclick*="toggleDropdown"]');
+    
+    let clickedButton = false;
+    buttons.forEach(button => {
+      if (button.contains(event.target)) {
+        clickedButton = true;
+      }
+    });
+    
+    if (!clickedButton) {
+      dropdowns.forEach(dropdown => {
+        if (!dropdown.contains(event.target)) {
+          dropdown.classList.add('hidden');
+        }
+      });
+    }
+  });
+
+  // Sidebar toggle
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  
+  if (sidebarToggle && sidebar && overlay) {
+    sidebarToggle.addEventListener('click', function() {
+      if (window.innerWidth < 1024) {
+        sidebar.classList.toggle('show');
+        overlay.classList.toggle('hidden');
+      } else {
+        sidebar.classList.toggle('collapsed');
+        if (sidebar.classList.contains('collapsed')) {
+          sidebar.style.width = '80px';
+        } else {
+          sidebar.style.width = '280px';
+        }
+      }
+    });
+
+    overlay.addEventListener('click', function() {
+      sidebar.classList.remove('show');
+      overlay.classList.add('hidden');
+    });
+  }
+</script>

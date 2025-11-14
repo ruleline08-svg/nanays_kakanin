@@ -1,0 +1,683 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ action }} Product - Admin Panel</title>
+    <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+    <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+      .transition-all { transition: all 300ms ease-in-out; }
+      #sidebar { transform: translateX(-100%); }
+      #sidebar.show { transform: translateX(0); }
+      @media (min-width: 1024px) {
+        #sidebar { transform: translateX(0); width: 280px; }
+        #sidebar.collapsed { width: 80px; }
+        #sidebar.collapsed .sidebar-text { display: none; }
+        #sidebar.collapsed nav a { justify-content: center; padding-left: 0; padding-right: 0; }
+      }
+      .dropdown-menu { display: none; }
+      .dropdown-menu.show { display: block; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 via-white to-green-50 h-full overflow-x-hidden">
+
+<header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+  <div class="flex items-center gap-4">
+    <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-3">
+      <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+      <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+    </a>
+    <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+      <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+    </button>
+  </div>
+  <div class="hidden md:flex flex-1 max-w-xl mx-8">
+    <div class="relative w-full">
+      <input type="text" 
+               id="pageSearchInput"
+               placeholder="Search on this page..." 
+               class="w-full px-4 py-2 pl-10 pr-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <span id="searchCounter" class="text-xs text-gray-500 hidden"></span>
+          <button type="button" id="clearPageSearch" class="text-gray-400 hover:text-gray-600 p-1 hidden">
+            <i class="fas fa-times text-sm"></i>
+          </button>
+        </div>
+    </div>
+  </div>
+  <div class="ml-auto flex items-center gap-2">
+    <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i class="fa-solid fa-search text-xl text-gray-600"></i></button>
+    <div class="relative">
+      <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+        <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+        {% if admin_unread_notifications_count > 0 %}
+          <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ admin_unread_notifications_count }}</span>
+        {% endif %}
+      </button>
+      <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+        <div class="px-4 py-3 border-b border-gray-200">
+          <p class="text-sm font-semibold text-gray-700">
+            {% if admin_unread_notifications_count > 0 %}
+              You have {{ admin_unread_notifications_count }} new notification{{ admin_unread_notifications_count|pluralize }}
+            {% else %}
+              No new notifications
+            {% endif %}
+          </p>
+        </div>
+        <div class="max-h-64 overflow-y-auto">
+          {% if admin_recent_notifications %}
+            {% for notification in admin_recent_notifications %}
+              <a href="{% url 'admin_notifications' %}" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                <div class="text-xl mt-1 {% if 'Reservation' in notification.message %}text-green-600{% elif 'Order' in notification.message %}text-blue-600{% else %}text-yellow-500{% endif %}">
+                  {% if 'Reservation' in notification.message %}
+                    <i class="fas fa-calendar-check"></i>
+                  {% elif 'Order' in notification.message %}
+                    <i class="fas fa-shopping-cart"></i>
+                  {% else %}
+                    <i class="fas fa-info-circle"></i>
+                  {% endif %}
+                </div>
+                <div class="flex-1">
+                  <h4 class="text-sm font-semibold text-gray-800">{{ notification.get_type_display }}</h4>
+                  <p class="text-xs text-gray-500">{{ notification.message|truncatewords:10 }}</p>
+                  <p class="text-xs text-gray-400 mt-1"><i class="fas fa-clock"></i> {{ notification.created_at|timesince }} ago</p>
+                </div>
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="px-4 py-6 text-center text-gray-500 text-sm">
+              <i class="fas fa-bell-slash text-2xl mb-2"></i>
+              <p>No new notifications</p>
+            </div>
+          {% endif %}
+        </div>
+        <div class="px-4 py-2 border-t border-gray-200">
+          <a href="{% url 'admin_notifications' %}" class="text-sm text-primary hover:underline">Show all notifications</a>
+        </div>
+      </div>
+    </div>
+    
+    </div>
+    <div class="relative">
+      <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+        <span class="hidden md:block text-sm font-medium text-secondary">{{ user.username }}</span>
+        <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+      </button>
+      <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+        <div class="px-4 py-3 border-b border-gray-200"><h6 class="text-sm font-semibold text-gray-800">{{ user.username }}</h6><span class="text-xs text-gray-500">{{ user.email }}</span></div>
+        <a href="/admin/" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"><i class="bi bi-gear text-lg text-gray-600"></i><span class="text-sm text-gray-700">Django Admin</span></a>
+        <div class="border-t border-gray-200 my-1"></div>
+        <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors"><i class="bi bi-box-arrow-right text-lg text-red-600"></i><span class="text-sm text-red-600">Sign Out</span></a>
+      </div>
+    </div>
+  </div>
+</header>
+<aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+         
+  <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+    <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-house text-lg min-w-[20px]"></i><span class="sidebar-text">Home</span></a>
+    <a href="{% url 'admin_products' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-green-700 bg-green-50 hover:bg-green-100 transition"><i class="fa-solid fa-box text-lg min-w-[20px]"></i><span class="sidebar-text">Products</span></a>
+    <a href="{% url 'admin_content' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-edit text-lg min-w-[20px]"></i><span class="sidebar-text">Content</span></a>
+    <a href="{% url 'admin_orders' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i><span class="sidebar-text">Orders</span></a>
+    <a href="{% url 'admin_reservations' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-calendar-check text-lg min-w-[20px]"></i><span class="sidebar-text">Reservations</span></a>
+    <a href="{% url 'admin_users' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-users text-lg min-w-[20px]"></i><span class="sidebar-text">Users</span></a>
+    <a href="{% url 'messages_inbox' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-message text-lg min-w-[20px]"></i><span class="sidebar-text">Messages</span>{% if unread_messages_count > 0 %}<span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">{{ unread_messages_count }}</span>{% endif %}</a>
+    <a href="/admin/" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-cog text-lg min-w-[20px]"></i><span class="sidebar-text">Django Admin</span></a>
+  </nav>
+</aside>
+<div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+<div id="mainContent" class="lg:ml-[280px] flex-1 flex flex-col min-h-screen pt-20 transition-all">
+    <div class="p-6">
+       <div class="p-6">
+           <div class="mb-6 flex items-center justify-between">
+               <div>   
+                        <h1 class="text-3xl font-bold text-gray-800">{{ action }} Product</h1>
+                        <p class="text-gray-600">{% if action == 'Create' %}Add a new kakanin product{% else %}Update product information{% endif %}</p>
+                    </div>
+                    <a href="{% url 'admin_products' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Products
+                    </a>
+                </div>
+
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="mb-4 p-4 rounded-md {% if message.tags == 'success' %}bg-green-100 text-green-700{% elif message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="max-w-2xl mx-auto">
+                    <div class="bg-white rounded-lg shadow">
+                        <div class="p-6">
+                            {% if preset_type or product %}
+                              <div class="mb-4">
+                                <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold
+                                  {% if preset_type == 'available_now' or product and 'available_now' in product.categories %} bg-green-100 text-green-700
+                                  {% elif preset_type == 'order_now' or product and 'order_now' in product.categories %} bg-gray-900 text-white
+                                  {% elif preset_type == 'reservation' or product and 'reservation' in product.categories %} bg-blue-100 text-blue-700{% endif %}">
+                                  {% if preset_type == 'available_now' or product and 'available_now' in product.categories %}<i class="fas fa-clock"></i> Available Product{% endif %}
+                                  {% if preset_type == 'order_now' or product and 'order_now' in product.categories %}<i class="fas fa-bag-shopping"></i> Order Product{% endif %}
+                                  {% if preset_type == 'reservation' or product and 'reservation' in product.categories %}<i class="fas fa-calendar"></i> Reserve Product{% endif %}
+                                </span>
+                              </div>
+                            {% endif %}
+                            <form method="POST" enctype="multipart/form-data" class="space-y-8">
+                                {% csrf_token %}
+                                
+                                <!-- Hidden category field -->
+                                <input type="hidden" name="category" value="{{ preset_category }}">
+                                
+                                <!-- 🧁 PRODUCT INFORMATION -->
+                                <div>
+                                    <h2 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">
+                                        {% if preset_type == 'order_now' %}Order Product{% elif preset_type == 'reservation' %}Reservation Product{% else %}Product Information{% endif %}
+                                    </h2>
+
+                                    <!-- Product Name -->
+                                    <div class="mb-4">
+                                        <label class="block font-medium text-gray-700 mb-1">Product Name *</label>
+                                        <input type="text" name="name" required
+                                               value="{% if product %}{{ product.name }}{% endif %}"
+                                               class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                    </div>
+
+                                    <!-- CORRECTION: Fixed template syntax error - removed parentheses from conditional statements -->
+                                    {% if preset_type == 'order_now' or product and 'order_now' in product.categories %}
+                                    <!-- Price and Stock (Order Products Only) -->
+                                    <div class="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label class="block font-medium text-gray-700 mb-1">Price (₱) *</label>
+                                            <input type="number" name="price" step="0.01" min="0" required
+                                                   value="{% if product %}{{ product.price }}{% endif %}"
+                                                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                        </div>
+                                        <div>
+                                            <label class="block font-medium text-gray-700 mb-1">Stock (pcs)</label>
+                                            <input type="number" name="stock" min="0"
+                                                   value="{% if product %}{{ product.stock }}{% else %}0{% endif %}"
+                                                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                            <p class="text-sm text-gray-500 mt-1">Available pieces in inventory</p>
+                                        </div>
+                                    </div>
+                                    {% elif preset_type == 'reservation' or product and 'reservation' in product.categories %}
+                                    <!-- Price (Reservation Products - No Stock Needed) -->
+                                    <div class="mb-4">
+                                        <label class="block font-medium text-gray-700 mb-1">Price (₱) *</label>
+                                        <input type="number" name="price" step="0.01" min="0" required
+                                               value="{% if product %}{{ product.price }}{% endif %}"
+                                               class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                        <p class="text-sm text-gray-500 mt-1">Price per piece for reservation orders</p>
+                                    </div>
+                                    <!-- Hidden stock field set to 0 for reservation products -->
+                                    <input type="hidden" name="stock" value="0">
+                                    {% else %}
+                                    <!-- Default: Price and Stock -->
+                                    <div class="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label class="block font-medium text-gray-700 mb-1">Price (₱) *</label>
+                                            <input type="number" name="price" step="0.01" min="0" required
+                                               value="{% if product %}{{ product.price }}{% endif %}"
+                                               class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                        </div>
+                                        <div>
+                                            <label class="block font-medium text-gray-700 mb-1">Stock (pcs)</label>
+                                            <input type="number" name="stock" min="0"
+                                                   value="{% if product %}{{ product.stock }}{% else %}0{% endif %}"
+                                                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                            <p class="text-sm text-gray-500 mt-1">Available pieces in inventory</p>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Available -->
+                                    <div class="flex items-center gap-2 mb-6">
+                                        <input type="checkbox" name="is_available" id="is_available"
+                                               {% if product %}{% if product.is_available %}checked{% endif %}{% else %}checked{% endif %}
+                                               class="h-4 w-4 text-green-600 rounded">
+                                        <label for="is_available" class="text-gray-700">✓ Product is Available</label>
+                                        <p class="text-sm text-gray-500 ml-6">Check this to make the product visible in the shop</p>
+                                    </div>
+
+                                    <!-- Description -->
+                                    <div>
+                                        <label class="block font-medium text-gray-700 mb-1">Description</label>
+                                        <textarea name="description" rows="3" placeholder="Enter product description..."
+                                                  class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">{% if product %}{{ product.description }}{% endif %}</textarea>
+                                    </div>
+                                </div>
+
+                                <!-- Current Image (for edit) -->
+                                {% if product and product.image %}
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Current Image</label>
+                                        <div class="flex items-center space-x-4">
+                                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-24 h-24 object-cover rounded-lg">
+                                            <div>
+                                                <p class="text-sm text-gray-600">Current product image</p>
+                                                <p class="text-xs text-gray-500">Upload a new image to replace this one</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                <!-- 🖼️ PRODUCT IMAGE -->
+                                <div>
+                                    <label class="block font-medium text-gray-700 mb-2">Product Image {% if not product %}*{% endif %}</label>
+                                    <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition">
+                                        <input type="file" name="image" accept=".jpg,.jpeg,.png,.gif" {% if not product %}required{% endif %}
+                                               class="mx-auto block text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+                                                      file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                                                      file:bg-green-600 file:text-white hover:file:bg-green-700">
+                                        <p class="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB</p>
+                                    </div>
+                                </div>
+
+                                <!-- CORRECTION: Fixed template syntax error - removed parentheses from conditional statements -->
+                                {% if preset_type == 'order_now' or product and 'order_now' in product.categories %}
+                                <!-- ⚙️ ORDER SETTINGS (For Today's Available Kakanin) -->
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Order Settings</h3>
+                                    <p class="text-sm text-gray-600 mb-4">For customers buying available products today with time-based ordering.</p>
+
+                                    <div class="space-y-4">
+                                        <!-- Allow Order Now -->
+                                        <div class="flex items-center gap-2">
+                                            <input type="checkbox" name="allow_order_now" id="allow_order_now"
+                                                   {% if product %}{% if product.allow_order_now %}checked{% endif %}{% else %}checked{% endif %}
+                                                   class="h-4 w-4 text-green-600 rounded">
+                                            <label for="allow_order_now" class="text-gray-700 font-medium">Allow Order Now (Buy Flow)</label>
+                                        </div>
+
+                                        <!-- Order Time Window -->
+                                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <h4 class="font-medium text-gray-800 mb-3">⏰ Order Time Window</h4>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block font-medium text-gray-700 mb-1">Order Start Time</label>
+                                                    <input type="time" name="order_start_time" id="order_start_time"
+                                                           value="{% if product and product.available_from_time %}{{ product.available_from_time|time:'H:i' }}{% else %}07:00{% endif %}"
+                                                           class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:border-transparent" style="outline: none;" onfocus="this.style.borderColor='var(--secondary-color)';" onblur="this.style.borderColor='#d1d5db'; cursor-pointer">
+                                                    <p class="text-xs text-gray-500 mt-1">e.g., 7:00 AM</p>
+                                                </div>
+                                                <div>
+                                                    <label class="block font-medium text-gray-700 mb-1">Order End Time *</label>
+                                                    <input type="time" name="order_end_time" id="order_end_time" required
+                                                           value="{% if product and product.available_to_time %}{{ product.available_to_time|time:'H:i' }}{% else %}12:00{% endif %}"
+                                                           class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:border-transparent" style="outline: none;" onfocus="this.style.borderColor='var(--secondary-color)';" onblur="this.style.borderColor='#d1d5db'; cursor-pointer">
+                                                    <p class="text-xs text-gray-500 mt-1">e.g., 12:00 PM</p>
+                                                </div>
+                                            </div>
+                                            <p class="text-sm text-blue-700 mt-2">
+                                                <i class="fas fa-info-circle"></i> After end time, ordering closes automatically. Customers can still view the product.
+                                            </p>
+                                        </div>
+
+                                        <!-- Minimum Order Quantities -->
+                                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                            <h4 class="font-medium text-gray-800 mb-3">📦 Order Quantity Rules</h4>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label class="block font-medium text-gray-700 mb-1">Pickup Minimum</label>
+                                                    <input type="number" name="min_order_quantity" min="1"
+                                                           value="{% if product %}{{ product.min_order_quantity }}{% else %}1{% endif %}"
+                                                           class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                                    <p class="text-xs text-gray-500 mt-1">Min for pickup orders (default: 1 pc)</p>
+                                                </div>
+                                                <div>
+                                                    <label class="block font-medium text-gray-700 mb-1">Delivery Minimum</label>
+                                                    <input type="number" name="delivery_min_quantity" min="1"
+                                                           value="{% if product %}{{ product.delivery_min_quantity }}{% else %}10{% endif %}"
+                                                           class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                                    <p class="text-xs text-gray-500 mt-1">Min for delivery orders (default: 10 pcs)</p>
+                                                </div>
+                                            </div>
+                                            <p class="text-sm text-green-700 mt-2">
+                                                <i class="fas fa-info-circle"></i> Pickup: 1 pc minimum | Delivery: 10 pcs minimum with downpayment required
+                                            </p>
+                                        </div>
+
+                                        <!-- Order Downpayment -->
+                                        <div>
+                                            <label class="block font-medium text-gray-700 mb-1">Order Downpayment (%)</label>
+                                            <input type="number" name="preorder_downpayment_percent" min="0" max="100" step="0.01"
+                                                   value="{% if product %}{{ product.preorder_downpayment_percent }}{% else %}50.00{% endif %}"
+                                                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                            <p class="text-sm text-gray-500 mt-1">Default: 50% downpayment required</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- CORRECTION: Fixed template syntax error - removed parentheses from conditional statements -->
+                                {% if preset_type == 'reservation' or product and 'reservation' in product.categories %}
+                                <!-- 📅 RESERVATION SETTINGS (For Future Orders) -->
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Reservation Settings</h3>
+                                    <p class="text-sm text-gray-600 mb-4">For customers who want to reserve for another day. Requires admin approval.</p>
+
+                                    <div class="space-y-4">
+                                        <!-- Allow Reservation -->
+                                        <div class="flex items-center gap-2">
+                                            <input type="checkbox" name="allow_reservation" id="allow_reservation"
+                                                   {% if product %}{% if product.allow_reservation %}checked{% endif %}{% else %}checked{% endif %}
+                                                   class="h-4 w-4 text-green-600 rounded">
+                                            <label for="allow_reservation" class="text-gray-700 font-medium">Allow Reservation</label>
+                                        </div>
+
+                                        <!-- Reservation Date Limit -->
+                                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                            <h4 class="font-medium text-gray-800 mb-3">📆 Reservation Date Limit</h4>
+                                            <div>
+                                                <label class="block font-medium text-gray-700 mb-1">Maximum Days in Advance</label>
+                                                <input type="number" name="max_reservation_days" min="1" max="30"
+                                                       value="{% if product and product.preparation_time_hours %}{{ product.preparation_time_hours|floatformat:0 }}{% else %}3{% endif %}"
+                                                       class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                                <p class="text-xs text-gray-500 mt-1">e.g., 3 days (customers can reserve up to 3 days ahead)</p>
+                                            </div>
+                                            <p class="text-sm text-purple-700 mt-2">
+                                                <i class="fas fa-info-circle"></i> Customers can pick a future date within this limit.
+                                            </p>
+                                        </div>
+
+                                        <!-- Minimum Order Quantity -->
+                                        <div>
+                                            <label class="block font-medium text-gray-700 mb-1">Minimum Order Quantity *</label>
+                                            <input type="number" name="min_order_quantity" min="1"
+                                                   value="{% if product %}{{ product.min_order_quantity }}{% else %}10{% endif %}"
+                                                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                            <p class="text-sm text-gray-500 mt-1">Customers must order at least this many pieces (default: 10)</p>
+                                        </div>
+
+                                        <!-- Preparation Time -->
+                                        <div>
+                                            <label class="block font-medium text-gray-700 mb-1">Preparation Time (Days) *</label>
+                                            <select name="preparation_days" required
+                                                    class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                                <option value="1" {% if product and product.preparation_days == 1 %}selected{% endif %}>1 day</option>
+                                                <option value="2" {% if product and product.preparation_days == 2 %}selected{% elif not product %}selected{% endif %}>2 days</option>
+                                                <option value="3" {% if product and product.preparation_days == 3 %}selected{% elif not product %}selected{% endif %}>3 days</option>
+                                                <option value="4" {% if product and product.preparation_days == 4 %}selected{% endif %}>4 days</option>
+                                                <option value="5" {% if product and product.preparation_days == 5 %}selected{% endif %}>5 days</option>
+                                                <option value="6" {% if product and product.preparation_days == 6 %}selected{% endif %}>6 days</option>
+                                                <option value="7" {% if product and product.preparation_days == 7 %}selected{% endif %}>7 days</option>
+                                            </select>
+                                            <p class="text-sm text-gray-500 mt-1">Select how many days needed to prepare this order</p>
+                                        </div>
+
+                                        <!-- Max Reservation Limit -->
+                                        <div>
+                                            <label class="block font-medium text-gray-700 mb-1">Daily Reservation Limit</label>
+                                            <input type="number" name="max_daily_quantity" min="1"
+                                                   value="{% if product and product.max_daily_quantity %}{{ product.max_daily_quantity }}{% else %}50{% endif %}"
+                                                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                            <p class="text-sm text-gray-500 mt-1">Maximum items that can be reserved per day (prevents overbooking)</p>
+                                        </div>
+
+                                        <!-- Reservation Downpayment -->
+                                        <div>
+                                            <label class="block font-medium text-gray-700 mb-1">Reservation Downpayment (%)</label>
+                                            <input type="number" name="reservation_downpayment_percent" min="0" max="100" step="0.01"
+                                                   value="{% if product %}{{ product.reservation_downpayment_percent }}{% else %}20.00{% endif %}"
+                                                   class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                            <p class="text-sm text-gray-500 mt-1">Default: 20% downpayment required</p>
+                                        </div>
+
+                                        <!-- Admin Approval Required -->
+                                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-user-check text-yellow-600"></i>
+                                                <p class="text-sm text-gray-700">
+                                                    <strong>Admin Confirmation:</strong> All reservations require admin approval based on schedule and supply.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- BUTTONS -->
+                                <div class="flex justify-end space-x-3 pt-4">
+                                    <a href="{% url 'admin_products' %}"
+                                       class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</a>
+                                    <button type="submit"
+                                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                                        {% if action == 'Create' %}Create Product{% else %}Update Product{% endif %}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Image preview functionality
+        const imageInput = document.querySelector('input[name="image"]');
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // You can add image preview functionality here if needed
+                        console.log('Image selected:', file.name);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Ensure time inputs are editable and clickable
+        const timeInputs = document.querySelectorAll('input[type="time"]');
+        timeInputs.forEach(input => {
+            input.addEventListener('click', function() {
+                this.showPicker && this.showPicker();
+            });
+        });
+
+        // Sidebar toggle
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const mainContent = document.getElementById('mainContent');
+        if (sidebarToggle && sidebar && overlay && mainContent) {
+          sidebarToggle.addEventListener('click', function() {
+            if (window.innerWidth < 1024) {
+              sidebar.classList.toggle('show');
+              overlay.classList.toggle('hidden');
+            } else {
+              sidebar.classList.toggle('collapsed');
+              mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '80px' : '280px';
+            }
+          });
+          overlay.addEventListener('click', function() {
+            sidebar.classList.remove('show');
+            overlay.classList.add('hidden');
+          });
+          window.addEventListener('resize', function() {
+            if (window.innerWidth >= 1024) {
+              overlay.classList.add('hidden');
+              sidebar.classList.remove('show');
+              mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '80px' : '280px';
+            } else {
+              sidebar.classList.remove('collapsed');
+              mainContent.style.marginLeft = '0';
+            }
+          });
+        }
+        function toggleDropdown(id) {
+          const dropdown = document.getElementById(id);
+          const allDropdowns = document.querySelectorAll('.dropdown-menu');
+          allDropdowns.forEach(d => { if (d.id !== id) d.classList.remove('show'); });
+          dropdown.classList.toggle('show');
+        }
+        document.addEventListener('click', function(e) {
+          if (!e.target.closest('.relative')) {
+            document.querySelectorAll('.dropdown-menu').forEach(d => { d.classList.remove('show'); });
+          }
+        });
+    
+    // In-page search and highlight functionality
+    const pageSearchInput = document.getElementById('pageSearchInput');
+    const clearPageSearch = document.getElementById('clearPageSearch');
+    const searchCounter = document.getElementById('searchCounter');
+    let currentHighlights = [];
+    let currentMatchIndex = 0;
+
+    function removeHighlights() {
+      currentHighlights.forEach(highlight => {
+        const parent = highlight.parentNode;
+        parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+        parent.normalize();
+      });
+      currentHighlights = [];
+      currentMatchIndex = 0;
+      searchCounter.classList.add('hidden');
+    }
+
+    function highlightText(searchTerm) {
+      removeHighlights();
+      
+      if (!searchTerm || searchTerm.trim() === '') {
+        return;
+      }
+
+      const mainContent = document.getElementById('mainContent');
+      if (!mainContent) return;
+
+      const walker = document.createTreeWalker(
+        mainContent,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: function(node) {
+            if (node.parentElement.tagName === 'SCRIPT' || 
+                node.parentElement.tagName === 'STYLE' ||
+                node.parentElement.classList.contains('highlight-match')) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      );
+
+      const nodesToHighlight = [];
+      let node;
+      
+      while (node = walker.nextNode()) {
+        const text = node.textContent;
+        const lowerText = text.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        if (lowerText.includes(lowerSearch)) {
+          nodesToHighlight.push(node);
+        }
+      }
+
+      nodesToHighlight.forEach(textNode => {
+        const text = textNode.textContent;
+        const lowerText = text.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        let lastIndex = 0;
+        const fragment = document.createDocumentFragment();
+        
+        let index = lowerText.indexOf(lowerSearch);
+        while (index !== -1) {
+          if (index > lastIndex) {
+            fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+          }
+          
+          const mark = document.createElement('mark');
+          mark.className = 'highlight-match';
+          mark.style.backgroundColor = '#fef08a';
+          mark.style.padding = '2px 0';
+          mark.style.borderRadius = '2px';
+          mark.textContent = text.substring(index, index + searchTerm.length);
+          fragment.appendChild(mark);
+          currentHighlights.push(mark);
+          
+          lastIndex = index + searchTerm.length;
+          index = lowerText.indexOf(lowerSearch, lastIndex);
+        }
+        
+        if (lastIndex < text.length) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+        
+        textNode.parentNode.replaceChild(fragment, textNode);
+      });
+
+      if (currentHighlights.length > 0) {
+        searchCounter.textContent = `${currentHighlights.length} found`;
+        searchCounter.classList.remove('hidden');
+        
+        if (currentHighlights[0]) {
+          currentHighlights[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          currentHighlights[0].style.backgroundColor = '#fbbf24';
+        }
+      }
+    }
+
+    pageSearchInput.addEventListener('input', function() {
+      const searchTerm = this.value.trim();
+      
+      if (searchTerm) {
+        clearPageSearch.classList.remove('hidden');
+        highlightText(searchTerm);
+      } else {
+        clearPageSearch.classList.add('hidden');
+        removeHighlights();
+      }
+    });
+
+    clearPageSearch.addEventListener('click', function() {
+      pageSearchInput.value = '';
+      clearPageSearch.classList.add('hidden');
+      removeHighlights();
+      pageSearchInput.focus();
+    });
+
+    pageSearchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && currentHighlights.length > 0) {
+        e.preventDefault();
+        
+        if (currentHighlights[currentMatchIndex]) {
+          currentHighlights[currentMatchIndex].style.backgroundColor = '#fef08a';
+        }
+        
+        currentMatchIndex = (currentMatchIndex + 1) % currentHighlights.length;
+        
+        if (currentHighlights[currentMatchIndex]) {
+          currentHighlights[currentMatchIndex].style.backgroundColor = '#fbbf24';
+          currentHighlights[currentMatchIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        searchCounter.textContent = `${currentMatchIndex + 1} of ${currentHighlights.length}`;
+      }
+    });
+
+    </script>
+</body>
+</html>

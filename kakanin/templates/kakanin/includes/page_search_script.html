@@ -1,0 +1,196 @@
+<script>
+  // Sidebar toggle
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('overlay');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const mainContent = document.getElementById('mainContent');
+  
+  sidebarToggle.addEventListener('click', function() {
+    if (window.innerWidth < 1024) {
+      sidebar.classList.toggle('show');
+      overlay.classList.toggle('hidden');
+    } else {
+      sidebar.classList.toggle('collapsed');
+      if (sidebar.classList.contains('collapsed')) {
+        mainContent.style.marginLeft = '80px';
+      } else {
+        mainContent.style.marginLeft = '280px';
+      }
+    }
+  });
+  
+  overlay.addEventListener('click', function() {
+    sidebar.classList.remove('show');
+    overlay.classList.add('hidden');
+  });
+  
+  // Dropdown toggle
+  function toggleDropdown(id) {
+    const dropdown = document.getElementById(id);
+    const allDropdowns = document.querySelectorAll('.dropdown-menu');
+    allDropdowns.forEach(d => {
+      if (d.id !== id) d.classList.remove('show');
+    });
+    dropdown.classList.toggle('show');
+  }
+  
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.relative')) {
+      document.querySelectorAll('.dropdown-menu').forEach(d => d.classList.remove('show'));
+    }
+  });
+  
+  window.addEventListener('resize', function() {
+    if (window.innerWidth >= 1024) {
+      overlay.classList.add('hidden');
+      sidebar.classList.remove('show');
+      if (sidebar.classList.contains('collapsed')) {
+        mainContent.style.marginLeft = '80px';
+      } else {
+        mainContent.style.marginLeft = '280px';
+      }
+    } else {
+      sidebar.classList.remove('collapsed');
+      mainContent.style.marginLeft = '0';
+    }
+  });
+
+  // In-page search and highlight functionality
+  const pageSearchInput = document.getElementById('pageSearchInput');
+  const clearPageSearch = document.getElementById('clearPageSearch');
+  const searchCounter = document.getElementById('searchCounter');
+  let currentHighlights = [];
+  let currentMatchIndex = 0;
+
+  function removeHighlights() {
+    currentHighlights.forEach(highlight => {
+      const parent = highlight.parentNode;
+      parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+      parent.normalize();
+    });
+    currentHighlights = [];
+    currentMatchIndex = 0;
+    searchCounter.classList.add('hidden');
+  }
+
+  function highlightText(searchTerm) {
+    removeHighlights();
+    
+    if (!searchTerm || searchTerm.trim() === '') {
+      return;
+    }
+
+    const mainContent = document.getElementById('mainContent');
+    if (!mainContent) return;
+
+    const walker = document.createTreeWalker(
+      mainContent,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: function(node) {
+          if (node.parentElement.tagName === 'SCRIPT' || 
+              node.parentElement.tagName === 'STYLE' ||
+              node.parentElement.classList.contains('highlight-match')) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+
+    const nodesToHighlight = [];
+    let node;
+    
+    while (node = walker.nextNode()) {
+      const text = node.textContent;
+      const lowerText = text.toLowerCase();
+      const lowerSearch = searchTerm.toLowerCase();
+      
+      if (lowerText.includes(lowerSearch)) {
+        nodesToHighlight.push(node);
+      }
+    }
+
+    nodesToHighlight.forEach(textNode => {
+      const text = textNode.textContent;
+      const lowerText = text.toLowerCase();
+      const lowerSearch = searchTerm.toLowerCase();
+      
+      let lastIndex = 0;
+      const fragment = document.createDocumentFragment();
+      
+      let index = lowerText.indexOf(lowerSearch);
+      while (index !== -1) {
+        if (index > lastIndex) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+        }
+        
+        const mark = document.createElement('mark');
+        mark.className = 'highlight-match';
+        mark.style.backgroundColor = '#fef08a';
+        mark.style.padding = '2px 0';
+        mark.style.borderRadius = '2px';
+        mark.textContent = text.substring(index, index + searchTerm.length);
+        fragment.appendChild(mark);
+        currentHighlights.push(mark);
+        
+        lastIndex = index + searchTerm.length;
+        index = lowerText.indexOf(lowerSearch, lastIndex);
+      }
+      
+      if (lastIndex < text.length) {
+        fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+      }
+      
+      textNode.parentNode.replaceChild(fragment, textNode);
+    });
+
+    if (currentHighlights.length > 0) {
+      searchCounter.textContent = `${currentHighlights.length} found`;
+      searchCounter.classList.remove('hidden');
+      
+      if (currentHighlights[0]) {
+        currentHighlights[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        currentHighlights[0].style.backgroundColor = '#fbbf24';
+      }
+    }
+  }
+
+  pageSearchInput.addEventListener('input', function() {
+    const searchTerm = this.value.trim();
+    
+    if (searchTerm) {
+      clearPageSearch.classList.remove('hidden');
+      highlightText(searchTerm);
+    } else {
+      clearPageSearch.classList.add('hidden');
+      removeHighlights();
+    }
+  });
+
+  clearPageSearch.addEventListener('click', function() {
+    pageSearchInput.value = '';
+    clearPageSearch.classList.add('hidden');
+    removeHighlights();
+    pageSearchInput.focus();
+  });
+
+  pageSearchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && currentHighlights.length > 0) {
+      e.preventDefault();
+      
+      if (currentHighlights[currentMatchIndex]) {
+        currentHighlights[currentMatchIndex].style.backgroundColor = '#fef08a';
+      }
+      
+      currentMatchIndex = (currentMatchIndex + 1) % currentHighlights.length;
+      
+      if (currentHighlights[currentMatchIndex]) {
+        currentHighlights[currentMatchIndex].style.backgroundColor = '#fbbf24';
+        currentHighlights[currentMatchIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      
+      searchCounter.textContent = `${currentMatchIndex + 1} of ${currentHighlights.length}`;
+    }
+  });
+</script>

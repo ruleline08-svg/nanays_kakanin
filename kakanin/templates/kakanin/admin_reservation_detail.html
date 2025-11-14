@@ -1,0 +1,276 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservation #{{ reservation.id }} - Admin</title>
+    <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+    <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+    
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+    </script>
+    <style>
+      .transition-all { transition: all 300ms ease-in-out; }
+      #sidebar { transform: translateX(-100%); }
+      #sidebar.show { transform: translateX(0); }
+      
+      @media (min-width: 1024px) {
+        #sidebar { transform: translateX(0); width: 280px; }
+        #sidebar.collapsed { width: 80px; }
+        #sidebar.collapsed .sidebar-text { display: none; }
+        #sidebar.collapsed nav a { justify-content: center; padding-left: 0; padding-right: 0; }
+      }
+      
+      .dropdown-menu { display: none; }
+      .dropdown-menu.show { display: block; }
+      
+      .status-badge {
+          padding: 10px 20px;
+          border-radius: 9999px;
+          font-weight: 600;
+          font-size: 0.875rem;
+      }
+      .status-pending { background-color: #fef3c7; color: #92400e; }
+      .status-pending_payment { background-color: #dbeafe; color: #1e40af; }
+      .status-confirmed { background-color: #d1fae5; color: #065f46; }
+      .status-completed { background-color: #bbf7d0; color: #14532d; }
+      .status-rejected, .status-cancelled { background-color: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body class="bg-green-50 h-full overflow-x-hidden">
+
+  {% include 'kakanin/includes/admin_navbar.html' %}
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed top-20 left-0 bottom-0 bg-white shadow-xl z-40 transition-all overflow-y-auto border-r border-gray-200">
+        <nav class="p-4 space-y-1">
+                <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                    <i class="fas fa-home text-gray-500"></i>
+                    <span class="sidebar-text">Home</span>
+                </a>
+                <a href="{% url 'admin_products' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                    <i class="fas fa-box text-gray-500"></i>
+                    <span class="sidebar-text">Products</span>
+                </a>
+                <a href="{% url 'admin_content' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                    <i class="fas fa-edit text-gray-500"></i>
+                    <span class="sidebar-text">Content</span>
+                </a>
+                <a href="{% url 'admin_orders' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                    <i class="fas fa-shopping-cart text-gray-500"></i>
+                    <span class="sidebar-text">Orders</span>
+                </a>
+                <a href="{% url 'admin_reservations' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg bg-green-100 text-green-700 font-semibold transition">
+                    <i class="fas fa-calendar-check text-green-600"></i>
+                    <span class="sidebar-text">Reservations</span>
+                </a>
+                <a href="{% url 'admin_users' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                    <i class="fas fa-users text-gray-500"></i>
+                    <span class="sidebar-text">Users</span>
+                </a>
+                <a href="{% url 'messages_inbox' %}" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition relative">
+                    <i class="fas fa-envelope text-gray-500"></i>
+                    <span class="sidebar-text">Messages</span>
+                    {% if unread_messages_count > 0 %}
+                      <span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
+                        {{ unread_messages_count }}
+                      </span>
+                    {% endif %}
+                </a>
+                <a href="/admin/" class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                    <i class="fas fa-cog text-gray-500"></i>
+                    <span class="sidebar-text">Django Admin</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="mainContent" class="pt-20 transition-all">
+            <div class="p-4 lg:p-8">
+            <div class="max-w-5xl mx-auto">
+                <!-- Header -->
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">Reservation #{{ reservation.id }}</h1>
+                        <p class="text-gray-600 mt-1">Manage reservation details and status</p>
+                    </div>
+                    <a href="{% url 'admin_reservations' %}" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to List
+                    </a>
+                </div>
+
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="mb-4 px-4 py-3 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800{% elif message.tags == 'error' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <!-- Reservation Info Card -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">Reservation Information</h2>
+                        <span class="status-badge status-{{ reservation.status }}">
+                            {{ reservation.get_status_display }}
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Customer</p>
+                            <p class="font-semibold text-gray-800">{{ reservation.user.get_full_name|default:reservation.user.username }}</p>
+                            <p class="text-sm text-gray-600">{{ reservation.user.email }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Product</p>
+                            <p class="font-semibold text-gray-800">{{ reservation.product.name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Quantity</p>
+                            <p class="font-semibold text-gray-800">{{ reservation.quantity }} pcs</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Total Amount</p>
+                            <p class="font-semibold text-green-600 text-lg">₱{{ reservation.total_amount }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Reservation Date</p>
+                            <p class="font-semibold text-gray-800">{{ reservation.reservation_date }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Reservation Time</p>
+                            <p class="font-semibold text-gray-800">{{ reservation.reservation_time }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Delivery</p>
+                            <p class="font-semibold text-gray-800">{% if reservation.delivery %}Yes{% else %}Pickup{% endif %}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Payment Method</p>
+                            <p class="font-semibold text-gray-800">{{ reservation.get_payment_method_display }}</p>
+                        </div>
+                    </div>
+
+                    {% if reservation.notes %}
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <p class="text-sm text-gray-600 mb-2">Customer Notes</p>
+                            <p class="text-gray-800">{{ reservation.notes }}</p>
+                        </div>
+                    {% endif %}
+
+                    {% if reservation.decision_notes %}
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <p class="text-sm text-gray-600 mb-2">Admin Notes</p>
+                            <p class="text-gray-800">{{ reservation.decision_notes }}</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Payment Info Card -->
+                {% if reservation.gcash_reference or reservation.payment_proof %}
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Payment Information</h2>
+                    
+                    {% if reservation.gcash_reference %}
+                        <div class="mb-4">
+                            <p class="text-sm text-gray-600 mb-1">GCash Reference Number</p>
+                            <p class="font-semibold text-gray-800">{{ reservation.gcash_reference }}</p>
+                        </div>
+                    {% endif %}
+
+                    {% if reservation.payment_proof %}
+                        <div>
+                            <p class="text-sm text-gray-600 mb-2">Payment Proof</p>
+                            <a href="{{ reservation.payment_proof.url }}" target="_blank">
+                                <img src="{{ reservation.payment_proof.url }}" alt="Payment Proof" class="max-w-md rounded-lg shadow-md hover:shadow-xl transition cursor-pointer">
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Admin Actions -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Admin Actions</h2>
+                    
+                    <div class="flex flex-wrap gap-3">
+                        {% if reservation.status == 'pending' %}
+                            <form method="post" action="{% url 'admin_reservation_confirm' reservation.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" onclick="return confirm('Confirm this reservation? Customer will be notified and can proceed to payment.')" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition">
+                                    <i class="fas fa-check mr-2"></i>Confirm Reservation
+                                </button>
+                            </form>
+                            
+                            <button onclick="document.getElementById('rejectModal').classList.remove('hidden')" class="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition">
+                                <i class="fas fa-times mr-2"></i>Reject Reservation
+                            </button>
+                        {% elif reservation.status == 'confirmed' %}
+                            <form method="post" action="{% url 'admin_reservation_complete' reservation.id %}" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" onclick="return confirm('Mark this reservation as completed?')" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition">
+                                    <i class="fas fa-check-circle mr-2"></i>Mark as Completed
+                                </button>
+                            </form>
+                        {% elif reservation.status == 'pending_payment' %}
+                            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p class="text-blue-800"><i class="fas fa-info-circle mr-2"></i>Waiting for customer to submit payment (50% downpayment)</p>
+                            </div>
+                        {% elif reservation.status == 'completed' %}
+                            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                                <p class="text-green-800"><i class="fas fa-check-circle mr-2"></i>This reservation has been completed</p>
+                            </div>
+                        {% elif reservation.status == 'rejected' %}
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <p class="text-red-800"><i class="fas fa-times-circle mr-2"></i>This reservation has been rejected</p>
+                            </div>
+                        {% elif reservation.status == 'cancelled' %}
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <p class="text-gray-800"><i class="fas fa-ban mr-2"></i>This reservation has been cancelled by the customer</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            </div>
+        </main>
+
+    <!-- Reject Modal -->
+    <div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Reject Reservation</h3>
+            <form method="post" action="{% url 'admin_reservation_reject' reservation.id %}">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Rejection (Optional)</label>
+                    <textarea name="decision_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Enter reason..."></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="document.getElementById('rejectModal').classList.add('hidden')" class="flex-1 px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-semibold transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition">
+                        Reject
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% include 'kakanin/includes/navbar_scripts.html' %}
+</body>
+</html>

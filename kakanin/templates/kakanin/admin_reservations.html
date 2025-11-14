@@ -1,0 +1,598 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Reservations - Admin</title>
+  <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .transition-all { transition: all 300ms ease-in-out; }
+    #sidebar { transform: translateX(-100%); }
+    #sidebar.show { transform: translateX(0); }
+    @media (min-width: 1024px) {
+      #sidebar { transform: translateX(0); width: 280px; }
+      #sidebar.collapsed { width: 80px; }
+      #sidebar.collapsed .sidebar-text { display: none; }
+      #sidebar.collapsed nav a { justify-content: center; padding-left: 0; padding-right: 0; }
+    }
+    .dropdown-menu { display: none; }
+    .dropdown-menu.show { display: block; }
+  </style>
+</head>
+<body class="bg-green-50 h-full overflow-x-hidden">
+  <header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+    <div class="flex items-center gap-4">
+      <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-3">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+        <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+      </a>
+      <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+      </button>
+    </div>
+    <div class="hidden md:flex flex-1 max-w-xl mx-8">
+      <div class="relative w-full">
+        <input type="text" 
+               id="pageSearchInput"
+               placeholder="Search on this page..." 
+               class="w-full px-4 py-2 pl-10 pr-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <span id="searchCounter" class="text-xs text-gray-500 hidden"></span>
+          <button type="button" id="clearPageSearch" class="text-gray-400 hover:text-gray-600 p-1 hidden">
+            <i class="fas fa-times text-sm"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i class="fa-solid fa-search text-xl text-gray-600"></i></button>
+      <div class="relative">
+        <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+          <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+          {% if admin_unread_notifications_count > 0 %}
+            <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ admin_unread_notifications_count }}</span>
+          {% endif %}
+        </button>
+        <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <p class="text-sm font-semibold text-gray-700">
+              {% if admin_unread_notifications_count > 0 %}
+                You have {{ admin_unread_notifications_count }} new notification{{ admin_unread_notifications_count|pluralize }}
+              {% else %}
+                No new notifications
+              {% endif %}
+            </p>
+          </div>
+          <div class="max-h-64 overflow-y-auto">
+            {% if admin_recent_notifications %}
+              {% for notif in admin_recent_notifications %}
+                <a href="{% url 'admin_mark_notification_read' notif.id %}" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                  <i class="{% if 'Order' in notif.message %}fas fa-shopping-cart{% elif 'Reservation' in notif.message %}fas fa-calendar-check{% elif 'stock' in notif.message %}fas fa-box{% else %}fas fa-info-circle{% endif %} text-2xl text-green-600 mt-1"></i>
+                  <div class="flex-1">
+                    <p class="text-sm text-gray-800">{{ notif.message|truncatewords:10 }}</p>
+                    <p class="text-xs text-gray-400 mt-1">{{ notif.created_at|timesince }} ago</p>
+                  </div>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="px-4 py-6 text-center text-gray-500 text-sm">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No notifications</p>
+              </div>
+            {% endif %}
+          </div>
+          <div class="px-4 py-2 border-t border-gray-200">
+            <a href="{% url 'admin_notifications' %}" class="text-sm text-primary hover:underline">Show all notifications</a>
+          </div>
+        </div>
+      </div>
+      
+      </div>
+      <div class="relative">
+        <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+          <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+          <span class="hidden md:block text-sm font-medium text-secondary">{{ user.username }}</span>
+          <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+        </button>
+        <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200"><h6 class="text-sm font-semibold text-gray-800">{{ user.username }}</h6><span class="text-xs text-gray-500">{{ user.email }}</span></div>
+          <a href="/admin/" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors"><i class="bi bi-gear text-lg text-gray-600"></i><span class="text-sm text-gray-700">Django Admin</span></a>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors"><i class="bi bi-box-arrow-right text-lg text-red-600"></i><span class="text-sm text-red-600">Sign Out</span></a>
+        </div>
+      </div>
+    </div>
+  </header>
+  <aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+    <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+      <a href="{% url 'admin_dashboard' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-house text-lg min-w-[20px]"></i><span class="sidebar-text">Home</span></a>
+      <a href="{% url 'admin_products' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-box text-lg min-w-[20px]"></i><span class="sidebar-text">Products</span></a>
+      <a href="{% url 'admin_content' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-edit text-lg min-w-[20px]"></i><span class="sidebar-text">Content</span></a>
+      <a href="{% url 'admin_orders' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i><span class="sidebar-text">Orders</span></a>
+      <a href="{% url 'admin_reservations' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-green-700 bg-green-50 hover:bg-green-100 transition"><i class="fa-solid fa-calendar-check text-lg min-w-[20px]"></i><span class="sidebar-text">Reservations</span></a>
+      <a href="{% url 'admin_users' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-users text-lg min-w-[20px]"></i><span class="sidebar-text">Users</span></a>
+      <a href="{% url 'messages_inbox' %}" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-message text-lg min-w-[20px]"></i><span class="sidebar-text">Messages</span>{% if unread_messages_count > 0 %}<span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">{{ unread_messages_count }}</span>{% endif %}</a>
+      <a href="/admin/" class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition"><i class="fa-solid fa-cog text-lg min-w-[20px]"></i><span class="sidebar-text">Django Admin</span></a>
+    </nav>
+  </aside>
+  <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+
+  <div id="mainContent" class="lg:ml-[280px] flex-1 flex flex-col min-h-screen pt-20 transition-all">
+    <div class="p-6">
+      <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-700"><i class="fas fa-calendar-check text-green-600"></i> Manage Reservations</h1>
+      </div>
+
+      <!-- Messages -->
+      {% if messages %}
+        {% for message in messages %}
+          <div class="mb-4 p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-700 border border-green-200{% elif message.tags == 'error' %}bg-red-100 text-red-700 border border-red-200{% else %}bg-blue-100 text-blue-700 border border-blue-200{% endif %}">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                {% if message.tags == 'success' %}
+                  <i class="fas fa-check-circle"></i>
+                {% elif message.tags == 'error' %}
+                  <i class="fas fa-exclamation-circle"></i>
+                {% else %}
+                  <i class="fas fa-info-circle"></i>
+                {% endif %}
+                <span>{{ message }}</span>
+              </div>
+              <button onclick="this.parentElement.parentElement.remove()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Filter Section -->
+      <div class="bg-white rounded-lg shadow p-6 mb-6">
+        {% csrf_token %}
+        <form method="get" class="flex items-end gap-4">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+              <option value="">All Statuses</option>
+              {% for status_code, status_label in status_choices %}
+              <option value="{{ status_code }}" {% if status_filter == status_code %}selected{% endif %}>{{ status_label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md">
+              <i class="fas fa-search mr-2"></i>Filter
+            </button>
+            <a href="{% url 'admin_reservations' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md">
+              <i class="fas fa-redo mr-2"></i>Reset
+            </a>
+            <button type="button" onclick="deleteSelectedReservations()" id="deleteReservationsBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md opacity-50 cursor-not-allowed" disabled>
+              <i class="fas fa-trash mr-2"></i>Delete Selected (<span id="selectedReservationCount">0</span>)
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Calendar View - Upcoming Reservations -->
+      <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <i class="fas fa-calendar-alt text-green-600"></i>
+          Reservation Calendar (Next 60 Days)
+        </h3>
+        
+        {% if calendar_data %}
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+            {% for date, reservations in calendar_data.items %}
+              <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-semibold text-gray-800">
+                    {{ date|date:"M d, Y" }}
+                    {% if date == today %}
+                      <span class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Today</span>
+                    {% endif %}
+                  </h4>
+                  <span class="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full">
+                    {{ reservations|length }}
+                  </span>
+                </div>
+                <div class="space-y-2">
+                  {% for res in reservations %}
+                    <div class="text-sm bg-gray-50 p-2 rounded border-l-4 
+                      {% if res.status == 'pending' %}border-yellow-500
+                      {% elif res.status == 'pending_payment' %}border-blue-500
+                      {% elif res.status == 'confirmed' %}border-green-500
+                      {% elif res.status == 'completed' %}border-teal-500
+                      {% else %}border-gray-500{% endif %}">
+                      <div class="font-medium text-gray-900">{{ res.time|time:"h:i A" }}</div>
+                      <div class="text-gray-600">{{ res.user }} - {{ res.product }}</div>
+                      <div class="text-gray-500 text-xs">Qty: {{ res.quantity }} | 
+                        <a href="{% url 'admin_reservation_detail' res.id %}" class="text-green-600 hover:underline">
+                          View #{{ res.id }}
+                        </a>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-gray-500 text-center py-4">No upcoming reservations in the next 60 days</p>
+        {% endif %}
+      </div>
+
+      <!-- Reservations Table -->
+      {% if page_obj %}
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reservation Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              {% for reservation in page_obj %}
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4">
+                  <input type="checkbox" class="reservation-checkbox w-4 h-4 text-green-600 rounded focus:ring-green-500" value="{{ reservation.id }}" data-status="{{ reservation.status }}" onchange="updateReservationSelection()">
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap"><strong class="text-gray-900">#{{ reservation.id }}</strong></td>
+                <td class="px-6 py-4">
+                  <div class="text-sm font-medium text-gray-900"><i class="fas fa-user text-gray-400"></i> {{ reservation.user.username }}</div>
+                  <div class="text-sm text-gray-500">{{ reservation.user.email }}</div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-900">{{ reservation.product.name }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ reservation.quantity }} pcs</td>
+                <td class="px-6 py-4 whitespace-nowrap"><strong class="text-green-600">₱{{ reservation.total_amount|floatformat:2 }}</strong></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{ reservation.reservation_date|date:"M d, Y" }}<br>
+                  <span class="text-gray-500">{{ reservation.reservation_time|time:"h:i A" }}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                    {% if reservation.status == 'pending_payment' %}bg-yellow-100 text-yellow-800
+                    {% elif reservation.status == 'pending_confirmation' %}bg-blue-100 text-blue-800
+                    {% elif reservation.status == 'confirmed' %}bg-green-100 text-green-800
+                    {% elif reservation.status == 'completed' %}bg-teal-100 text-teal-800
+                    {% elif reservation.status == 'rejected' %}bg-red-100 text-red-800
+                    {% endif %}">
+                    {{ reservation.get_status_display }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  <a href="{% url 'admin_reservation_detail' reservation.id %}" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">
+                    <i class="fas fa-eye"></i> View
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="mt-6 flex justify-center">
+          <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+              <i class="fas fa-chevron-left"></i>
+            </a>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+              {% if page_obj.number == num %}
+                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-green-50 text-sm font-medium text-green-600">{{ num }}</span>
+              {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">{{ num }}</a>
+              {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+              <i class="fas fa-chevron-right"></i>
+            </a>
+            {% endif %}
+          </nav>
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+          <i class="fas fa-calendar-times text-gray-300 text-6xl mb-4"></i>
+          <h5 class="text-xl font-bold text-gray-800 mb-2">No reservations found</h5>
+          <p class="text-gray-600">There are no reservations matching your criteria.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const mainContent = document.getElementById('mainContent');
+    if (sidebarToggle && sidebar && overlay && mainContent) {
+      sidebarToggle.addEventListener('click', function() {
+        if (window.innerWidth < 1024) {
+          sidebar.classList.toggle('show');
+          overlay.classList.toggle('hidden');
+        } else {
+          sidebar.classList.toggle('collapsed');
+          mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '80px' : '280px';
+        }
+      });
+      overlay.addEventListener('click', function() {
+        sidebar.classList.remove('show');
+        overlay.classList.add('hidden');
+      });
+      window.addEventListener('resize', function() {
+        if (window.innerWidth >= 1024) {
+          overlay.classList.add('hidden');
+          sidebar.classList.remove('show');
+          mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '80px' : '280px';
+        } else {
+          sidebar.classList.remove('collapsed');
+          mainContent.style.marginLeft = '0';
+        }
+      });
+    }
+    function toggleDropdown(id) {
+      const dropdown = document.getElementById(id);
+      const allDropdowns = document.querySelectorAll('.dropdown-menu');
+      allDropdowns.forEach(d => { if (d.id !== id) d.classList.remove('show'); });
+      dropdown.classList.toggle('show');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.relative')) {
+        document.querySelectorAll('.dropdown-menu').forEach(d => { d.classList.remove('show'); });
+      }
+    });
+  
+    // In-page search and highlight functionality
+    const pageSearchInput = document.getElementById('pageSearchInput');
+    const clearPageSearch = document.getElementById('clearPageSearch');
+    const searchCounter = document.getElementById('searchCounter');
+    let currentHighlights = [];
+    let currentMatchIndex = 0;
+
+    function removeHighlights() {
+      currentHighlights.forEach(highlight => {
+        const parent = highlight.parentNode;
+        parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+        parent.normalize();
+      });
+      currentHighlights = [];
+      currentMatchIndex = 0;
+      searchCounter.classList.add('hidden');
+    }
+
+    function highlightText(searchTerm) {
+      removeHighlights();
+      
+      if (!searchTerm || searchTerm.trim() === '') {
+        return;
+      }
+
+      const mainContent = document.getElementById('mainContent');
+      if (!mainContent) return;
+
+      const walker = document.createTreeWalker(
+        mainContent,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: function(node) {
+            if (node.parentElement.tagName === 'SCRIPT' || 
+                node.parentElement.tagName === 'STYLE' ||
+                node.parentElement.classList.contains('highlight-match')) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      );
+
+      const nodesToHighlight = [];
+      let node;
+      
+      while (node = walker.nextNode()) {
+        const text = node.textContent;
+        const lowerText = text.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        if (lowerText.includes(lowerSearch)) {
+          nodesToHighlight.push(node);
+        }
+      }
+
+      nodesToHighlight.forEach(textNode => {
+        const text = textNode.textContent;
+        const lowerText = text.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        let lastIndex = 0;
+        const fragment = document.createDocumentFragment();
+        
+        let index = lowerText.indexOf(lowerSearch);
+        while (index !== -1) {
+          if (index > lastIndex) {
+            fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+          }
+          
+          const mark = document.createElement('mark');
+          mark.className = 'highlight-match';
+          mark.style.backgroundColor = '#fef08a';
+          mark.style.padding = '2px 0';
+          mark.style.borderRadius = '2px';
+          mark.textContent = text.substring(index, index + searchTerm.length);
+          fragment.appendChild(mark);
+          currentHighlights.push(mark);
+          
+          lastIndex = index + searchTerm.length;
+          index = lowerText.indexOf(lowerSearch, lastIndex);
+        }
+        
+        if (lastIndex < text.length) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+        
+        textNode.parentNode.replaceChild(fragment, textNode);
+      });
+
+      if (currentHighlights.length > 0) {
+        searchCounter.textContent = `${currentHighlights.length} found`;
+        searchCounter.classList.remove('hidden');
+        
+        if (currentHighlights[0]) {
+          currentHighlights[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          currentHighlights[0].style.backgroundColor = '#fbbf24';
+        }
+      }
+    }
+
+    pageSearchInput.addEventListener('input', function() {
+      const searchTerm = this.value.trim();
+      
+      if (searchTerm) {
+        clearPageSearch.classList.remove('hidden');
+        highlightText(searchTerm);
+      } else {
+        clearPageSearch.classList.add('hidden');
+        removeHighlights();
+      }
+    });
+
+    clearPageSearch.addEventListener('click', function() {
+      pageSearchInput.value = '';
+      clearPageSearch.classList.add('hidden');
+      removeHighlights();
+      pageSearchInput.focus();
+    });
+
+    pageSearchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && currentHighlights.length > 0) {
+        e.preventDefault();
+        
+        if (currentHighlights[currentMatchIndex]) {
+          currentHighlights[currentMatchIndex].style.backgroundColor = '#fef08a';
+        }
+        
+        currentMatchIndex = (currentMatchIndex + 1) % currentHighlights.length;
+        
+        if (currentHighlights[currentMatchIndex]) {
+          currentHighlights[currentMatchIndex].style.backgroundColor = '#fbbf24';
+          currentHighlights[currentMatchIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        searchCounter.textContent = `${currentMatchIndex + 1} of ${currentHighlights.length}`;
+      }
+    });
+
+    // Reservation checkbox selection functions
+    function updateReservationSelection() {
+      const reservationCheckboxes = document.querySelectorAll('.reservation-checkbox');
+      const deleteBtn = document.getElementById('deleteReservationsBtn');
+      const selectedCount = Array.from(reservationCheckboxes).filter(cb => cb.checked).length;
+      
+      // Update count
+      document.getElementById('selectedReservationCount').textContent = selectedCount;
+      
+      // Enable/disable delete button
+      if (selectedCount > 0) {
+        deleteBtn.disabled = false;
+        deleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      } else {
+        deleteBtn.disabled = true;
+        deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+    }
+
+    function deleteSelectedReservations() {
+      const selectedCheckboxes = document.querySelectorAll('.reservation-checkbox:checked');
+      
+      if (selectedCheckboxes.length === 0) {
+        alert('Please select at least one reservation to delete.');
+        return;
+      }
+      
+      // Check if any selected reservation has invalid status
+      const invalidReservations = [];
+      const validReservations = [];
+      
+      selectedCheckboxes.forEach(checkbox => {
+        const status = checkbox.getAttribute('data-status');
+        const id = checkbox.value;
+        
+        if (status !== 'rejected' && status !== 'completed') {
+          // Get status display name
+          let statusDisplay = status;
+          if (status === 'pending') statusDisplay = 'Pending';
+          else if (status === 'pending_payment') statusDisplay = 'Pending Payment';
+          else if (status === 'confirmed') statusDisplay = 'Confirmed';
+          
+          invalidReservations.push(`#${id} (${statusDisplay})`);
+        } else {
+          validReservations.push(id);
+        }
+      });
+      
+      // If there are invalid reservations, show error popup
+      if (invalidReservations.length > 0) {
+        alert(`Cannot delete the following reservations because they are not rejected or completed:\n\n${invalidReservations.join('\n')}\n\nOnly rejected and completed reservations can be deleted.`);
+        return;
+      }
+      
+      // All reservations are valid, proceed with confirmation
+      if (confirm(`Are you sure you want to delete ${validReservations.length} reservation(s)? This action cannot be undone.`)) {
+        // Create form and submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "admin_bulk_delete_reservations" %}';
+        
+        // Add CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken ? csrfToken.value : '{{ csrf_token }}';
+        form.appendChild(csrfInput);
+        
+        // Add selected reservation IDs
+        validReservations.forEach(reservationId => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'reservation_ids';
+          input.value = reservationId;
+          form.appendChild(input);
+        });
+        
+        document.body.appendChild(form);
+        form.submit();
+      }
+    }
+
+  </script>
+</body>
+</html>

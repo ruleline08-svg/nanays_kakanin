@@ -1,0 +1,1202 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Profile - Nanay's Kakanin</title>
+    
+  <!-- Tailwind CSS -->
+  <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+  <!-- Bootstrap Icons CDN Fallback -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Smooth transitions */
+    .transition-all {
+      transition: all 300ms ease-in-out;
+    }
+    
+    /* Mobile: Sidebar hidden by default, slides in from left */
+    #sidebar {
+      transform: translateX(-100%);
+    }
+    
+    #sidebar.show {
+      transform: translateX(0);
+    }
+    
+    /* Desktop: sidebar always visible in full width */
+    @media (min-width: 1024px) {
+      #sidebar {
+        transform: translateX(0);
+        width: 280px;
+      }
+      
+      /* When collapsed on desktop, show icon-only */
+      #sidebar.collapsed {
+        width: 80px;
+      }
+      
+      /* Hide text labels when collapsed */
+      #sidebar.collapsed .sidebar-text {
+        display: none;
+      }
+      
+      /* Center icons when collapsed */
+      #sidebar.collapsed nav a {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+      }
+    }
+    
+    /* Dropdown animations */
+    .dropdown-menu {
+      display: none;
+    }
+    
+    .dropdown-menu.show {
+      display: block;
+    }
+    
+    /* Prevent horizontal scroll */
+    body {
+      overflow-x: hidden;
+    }
+  </style>
+</head>
+
+<body class="bg-green-50 h-full">
+
+  <!-- Top Navbar -->
+  <header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+    <div class="flex items-center gap-4">
+      <!-- Logo -->
+      <a href="{% url 'index_user' %}" class="flex items-center gap-3">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+        <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+      </a>
+      
+      <!-- Hamburger Toggle -->
+      <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+      </button>
+    </div>
+    
+    <!-- Search Bar (Desktop) -->
+    <div class="hidden md:flex flex-1 max-w-xl mx-8">
+      <div class="relative w-full">
+        <input type="text" id="searchInput" placeholder="Search product..." 
+               class="w-full px-4 py-2 pl-10 pr-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <button id="clearSearch" class="text-gray-400 hover:text-gray-600 p-1 hidden">
+            <i class="fas fa-times text-sm"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right Icons -->
+    <div class="ml-auto flex items-center gap-2">
+      <!-- Search Icon (Mobile) -->
+      <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
+        <i class="fa-solid fa-search text-xl text-gray-600"></i>
+      </button>
+      
+      <!-- Notifications -->
+      <div class="relative">
+        <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+          <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+          {% if unread_notifications_count > 0 %}
+            <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ unread_notifications_count }}</span>
+          {% endif %}
+        </button>
+        
+        <!-- Notifications Dropdown -->
+        <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <p class="text-sm font-semibold text-gray-700">{% if unread_notifications_count > 0 %}You have {{ unread_notifications_count }} new notification{{ unread_notifications_count|pluralize }}{% else %}No new notifications{% endif %}</p>
+          </div>
+          <div class="max-h-64 overflow-y-auto">
+            {% if recent_notifications %}
+              {% for notification in recent_notifications %}
+                <a href="{% url 'user_notifications' %}" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                  <div class="text-xl mt-1 {% if 'Reservation' in notification.message %}text-green-600{% elif 'Order' in notification.message %}text-blue-600{% else %}text-yellow-500{% endif %}">
+                    {% if 'Reservation' in notification.message %}
+                      <i class="fas fa-calendar-check"></i>
+                    {% elif 'Order' in notification.message %}
+                      <i class="fas fa-shopping-cart"></i>
+                    {% else %}
+                      <i class="fas fa-info-circle"></i>
+                    {% endif %}
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="text-sm font-semibold text-gray-800">{{ notification.get_type_display }}</h4>
+                    <p class="text-xs text-gray-500">{{ notification.message|truncatewords:10 }}</p>
+                    <p class="text-xs text-gray-400 mt-1"><i class="fas fa-clock"></i> {{ notification.created_at|timesince }} ago</p>
+                  </div>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="px-4 py-6 text-center text-gray-500 text-sm">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No new notifications</p>
+              </div>
+            {% endif %}
+          </div>
+          <div class="px-4 py-2 border-t border-gray-200">
+            <a href="{% url 'user_notifications' %}" class="text-sm text-primary hover:underline">Show all notifications</a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Profile -->
+      <div class="relative">
+        <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+          {% if user.userprofile.profile_picture %}
+          <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% else %}
+          <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% endif %}
+          <span class="hidden md:block text-sm font-medium text-secondary">{{ user.get_full_name|default:user.username }}</span>
+          <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+        </button>
+        
+        <!-- Profile Dropdown -->
+        <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <h6 class="text-sm font-semibold text-gray-800">{{ user.get_full_name|default:user.username }}</h6>
+            <span class="text-xs text-gray-500">{{ user.email }}</span>
+          </div>
+          <div class="px-4 py-2">
+            <div class="flex items-start gap-3 py-2">
+              <i class="fas fa-envelope text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Email</p>
+                <p class="text-sm text-gray-700">{{ user.email }}</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 py-2">
+              <i class="fas fa-phone text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Phone</p>
+                <p class="text-sm text-gray-700">{{ user.userprofile.phone|default:'Not provided' }}</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 py-2">
+              <i class="fas fa-map-marker-alt text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Address</p>
+                <p class="text-sm text-gray-700">{{ user.userprofile.get_full_address|default:'Not provided' }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors">
+            <i class="bi bi-box-arrow-right text-lg text-red-600"></i>
+            <span class="text-sm text-red-600">Sign Out</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+    <!-- Navigation -->
+    <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+      <a href="{% url 'index_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-house text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Home</span>
+      </a>
+      <a href="{% url 'shop_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shop text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Shop</span>
+      </a>
+      <a href="{% url 'view_cart' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i>
+        <span class="sidebar-text flex items-center gap-2">
+          Cart
+          {% if total_cart_count > 0 %}
+            <span class="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-semibold">{{ total_cart_count }}</span>
+          {% endif %}
+        </span>
+      </a>
+      <a href="{% url 'about' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-circle-info text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">About</span>
+      </a>
+      <a href="{% url 'messages_inbox' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition relative">
+        <i class="fa-solid fa-message text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Messages</span>
+        {% if unread_messages_count > 0 %}
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">{{ unread_messages_count }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'user_profile' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-green-700 bg-green-50 hover:bg-green-100 transition">
+        <i class="fa-solid fa-user text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Profile</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Overlay for mobile -->
+  <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+
+  <!-- Main Content Area -->
+  <div id="mainContent" class="min-h-screen lg:ml-[280px] transition-all pt-20 overflow-x-hidden">
+    <!-- Page Header -->
+    <div class="bg-white p-4 md:p-6 border-b w-full">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800">Profile</h1>
+        <nav class="text-sm text-gray-600 mt-1">
+          <a href="{% url 'index_user' %}" class="hover:text-green-600">Home</a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Profile Content -->
+    <div class="w-full px-4 md:px-6 mt-4 md:mt-6 flex justify-center">
+      <div class="w-full max-w-4xl">
+        
+        <!-- Tabs Content -->
+        <div>
+          <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            
+            <!-- Tab Navigation -->
+            <div class="border-b border-gray-200 overflow-x-auto">
+              <nav class="flex gap-1 px-4 md:px-6 min-w-max md:min-w-0 justify-center md:justify-start" role="tablist">
+                <button onclick="switchProfileTab('overview')" id="overviewTab" 
+                        class="profile-tab-btn flex items-center gap-2 px-3 md:px-4 py-3 md:py-4 text-xs md:text-sm font-medium text-green-600 border-b-2 border-green-600 transition-colors whitespace-nowrap">
+                  <i class="fas fa-user-circle text-base md:text-lg"></i>
+                  <span>My Profile</span>
+                </button>
+                <button onclick="switchProfileTab('orders')" id="ordersTab" 
+                        class="profile-tab-btn flex items-center gap-2 px-3 md:px-4 py-3 md:py-4 text-xs md:text-sm font-medium text-gray-600 border-b-2 border-transparent hover:text-green-600 hover:border-gray-300 transition-colors whitespace-nowrap">
+                  <i class="fas fa-shopping-bag text-base md:text-lg"></i>
+                  <span>My Orders</span>
+                </button>
+                <button onclick="switchProfileTab('reservations')" id="reservationsTab" 
+                        class="profile-tab-btn flex items-center gap-2 px-3 md:px-4 py-3 md:py-4 text-xs md:text-sm font-medium text-gray-600 border-b-2 border-transparent hover:text-green-600 hover:border-gray-300 transition-colors whitespace-nowrap">
+                  <i class="fas fa-calendar-check text-base md:text-lg"></i>
+                  <span>My Reservations</span>
+                </button>
+              </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-4 md:p-6">
+              
+              <!-- Overview Tab -->
+              <div id="overviewContent" class="profile-tab-content">
+                <h3 class="text-xl font-bold text-gray-800 mb-6">About</h3>
+                <p class="text-gray-600 mb-6 text-sm">
+                  Manage your profile information and delivery address. Keep your details up to date for a better shopping experience.
+                </p>
+
+                <h3 class="text-lg font-bold text-gray-800 mb-4">Profile Details</h3>
+            
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              
+              <!-- Profile Picture -->
+              <div class="text-center mb-6">
+                <div class="w-24 h-24 mx-auto mb-4">
+                  {% if profile.profile_picture %}
+                    <img src="{{ profile.profile_picture.url }}" alt="Profile Picture" class="w-24 h-24 rounded-full object-cover border-4 border-green-200">
+                  {% else %}
+                    <div class="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center border-4 border-green-200">
+                      <i class="fas fa-user text-2xl text-green-600"></i>
+                    </div>
+                  {% endif %}
+                </div>
+                <input type="file" name="profile_picture" accept="image/*" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+              </div>
+
+              <!-- Basic Information -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                  <input type="text" name="first_name" value="{{ user.first_name }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                  <input type="text" name="last_name" value="{{ user.last_name }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
+                  <input type="email" name="email" value="{{ user.email }}" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                </div>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Phone <span class="text-red-500">*</span></label>
+                  <input type="text" name="phone" value="{{ profile.phone }}" required placeholder="e.g., 09123456789" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                </div>
+                
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
+                  <input type="date" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d' }}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                </div>
+              </div>
+                
+                <!-- Delivery Address Section -->
+                <div class="border-t pt-4 mt-4">
+                  <h3 class="text-base font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                    <i class="fas fa-map-marker-alt text-green-600"></i>
+                    Delivery Address
+                  </h3>
+                  <p class="text-xs text-gray-600 mb-3 bg-blue-50 p-2 rounded">
+                    ℹ️ Delivery is available only within the Municipality of Naval, Biliran.
+                  </p>
+                  
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="md:col-span-2">
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Barangay <span class="text-red-500">*</span></label>
+                      <select name="barangay" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                        <option value="">-- Select Barangay --</option>
+                        <option value="agpangi" {% if profile.barangay == 'agpangi' %}selected{% endif %}>Agpangi</option>
+                        <option value="anislagan" {% if profile.barangay == 'anislagan' %}selected{% endif %}>Anislagan</option>
+                        <option value="atipolo" {% if profile.barangay == 'atipolo' %}selected{% endif %}>Atipolo</option>
+                        <option value="borac" {% if profile.barangay == 'borac' %}selected{% endif %}>Borac</option>
+                        <option value="cabungaan" {% if profile.barangay == 'cabungaan' %}selected{% endif %}>Cabungaan</option>
+                        <option value="calumpang" {% if profile.barangay == 'calumpang' %}selected{% endif %}>Calumpang</option>
+                        <option value="capiñahan" {% if profile.barangay == 'capiñahan' %}selected{% endif %}>Capiñahan</option>
+                        <option value="caraycaray" {% if profile.barangay == 'caraycaray' %}selected{% endif %}>Caraycaray</option>
+                        <option value="catmon" {% if profile.barangay == 'catmon' %}selected{% endif %}>Catmon</option>
+                        <option value="haguikhikan" {% if profile.barangay == 'haguikhikan' %}selected{% endif %}>Haguikhikan</option>
+                        <option value="imelda" {% if profile.barangay == 'imelda' %}selected{% endif %}>Imelda</option>
+                        <option value="larrazabal" {% if profile.barangay == 'larrazabal' %}selected{% endif %}>Larrazabal</option>
+                        <option value="libtong" {% if profile.barangay == 'libtong' %}selected{% endif %}>Libtong</option>
+                        <option value="libertad" {% if profile.barangay == 'libertad' %}selected{% endif %}>Libertad</option>
+                        <option value="lico" {% if profile.barangay == 'lico' %}selected{% endif %}>Lico</option>
+                        <option value="lucsoon" {% if profile.barangay == 'lucsoon' %}selected{% endif %}>Lucsoon</option>
+                        <option value="mabini" {% if profile.barangay == 'mabini' %}selected{% endif %}>Mabini</option>
+                        <option value="padre_inocentes_garcia" {% if profile.barangay == 'padre_inocentes_garcia' %}selected{% endif %}>Padre Inocentes Garcia (Pob.)</option>
+                        <option value="padre_sergio_eamiguel" {% if profile.barangay == 'padre_sergio_eamiguel' %}selected{% endif %}>Padre Sergio Eamiguel</option>
+                        <option value="sabang" {% if profile.barangay == 'sabang' %}selected{% endif %}>Sabang</option>
+                        <option value="san_pablo" {% if profile.barangay == 'san_pablo' %}selected{% endif %}>San Pablo</option>
+                        <option value="santo_nino" {% if profile.barangay == 'santo_nino' %}selected{% endif %}>Santo Niño</option>
+                        <option value="santissimo_rosario" {% if profile.barangay == 'santissimo_rosario' %}selected{% endif %}>Santissimo Rosario Pob. (Santo Rosa)</option>
+                        <option value="talustusan" {% if profile.barangay == 'talustusan' %}selected{% endif %}>Talustusan</option>
+                        <option value="villa_caneja" {% if profile.barangay == 'villa_caneja' %}selected{% endif %}>Villa Caneja</option>
+                        <option value="villa_consuelo" {% if profile.barangay == 'villa_consuelo' %}selected{% endif %}>Villa Consuelo</option>
+                      </select>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Zone / Purok <span class="text-red-500">*</span></label>
+                      <input type="text" name="zone" value="{{ profile.zone }}" required placeholder="e.g., Zone 1, Purok 3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Additional Notes / Nearest Landmark</label>
+                      <textarea name="additional_notes" rows="2" placeholder="e.g., Near church, beside barangay hall, yellow gate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">{{ profile.additional_notes }}</textarea>
+                    </div>
+                  </div>
+                </div>
+
+              <!-- Change Password Section -->
+              <div class="border-t pt-4 mt-4">
+                <h3 class="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <i class="fas fa-lock text-green-600"></i>
+                  Change Password
+                </h3>
+                <p class="text-xs text-gray-600 mb-3 bg-yellow-50 p-2 rounded">
+                  ⚠️ Leave password fields empty if you don't want to change your password.
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                    <div class="relative">
+                      <input type="password" name="current_password" id="profileCurrentPassword" placeholder="Enter current password" class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                      <button type="button" onclick="togglePassword('profileCurrentPassword', 'profileEyeIcon0')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                        <i id="profileEyeIcon0" class="fas fa-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                    <div class="relative">
+                      <input type="password" name="new_password" id="profileNewPassword" placeholder="Enter new password" 
+                             minlength="8" maxlength="20"
+                             pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^\s]{8,20}$"
+                             class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                             onfocus="document.getElementById('profilePasswordRequirements').classList.remove('hidden')"
+                             onblur="document.getElementById('profilePasswordRequirements').classList.add('hidden')">
+                      <button type="button" onclick="togglePassword('profileNewPassword', 'profileEyeIcon1')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                        <i id="profileEyeIcon1" class="fas fa-eye"></i>
+                      </button>
+                    </div>
+                    <div id="profilePasswordRequirements" class="hidden mt-2 text-xs text-gray-600 space-y-1 bg-gray-50 p-3 rounded border border-gray-200">
+                      <p class="flex items-center gap-2">
+                        <span class="text-gray-400">○</span> 8-20 characters
+                      </p>
+                      <p class="flex items-center gap-2">
+                        <span class="text-gray-400">○</span> At least one capital letter (A to Z)
+                      </p>
+                      <p class="flex items-center gap-2">
+                        <span class="text-gray-400">○</span> At least one lowercase letter (a to z)
+                      </p>
+                      <p class="flex items-center gap-2">
+                        <span class="text-gray-400">○</span> At least one number (0 to 9)
+                      </p>
+                      <p class="flex items-center gap-2">
+                        <span class="text-gray-400">○</span> No spaces
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                    <div class="relative">
+                      <input type="password" name="confirm_password" id="profileConfirmPassword" placeholder="Confirm new password" class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                      <button type="button" onclick="togglePassword('profileConfirmPassword', 'profileEyeIcon2')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                        <i id="profileEyeIcon2" class="fas fa-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="w-full mt-6 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors">
+                <i class="fas fa-save mr-2"></i>
+                Update Profile
+              </button>
+            </form>
+              </div>
+              <!-- End Overview Tab -->
+
+              <!-- Orders Tab -->
+              <div id="ordersContent" class="profile-tab-content hidden">
+              
+              <!-- Order Status Tabs -->
+              <div class="flex flex-wrap gap-2 mb-4">
+                <button onclick="filterOrders('all')" class="order-filter-btn active px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                  All
+                </button>
+                <button onclick="filterOrders('pending')" class="order-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                  Pending
+                </button>
+                <button onclick="filterOrders('ready_for_pickup')" class="order-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                  Ready for Pickup
+                </button>
+                <button onclick="filterOrders('out_for_delivery')" class="order-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                  Out for Delivery
+                </button>
+                <button onclick="filterOrders('completed')" class="order-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                  Completed
+                </button>
+                <button onclick="filterOrders('rejected')" class="order-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                  Rejected
+                </button>
+              </div>
+
+              <!-- Orders List - Compact Design -->
+              <div class="space-y-3 max-h-[60vh] lg:max-h-[70vh] overflow-y-auto pr-2">
+                {% for order in orders %}
+                <div class="order-item border border-gray-200 rounded-lg p-3" data-status="{{ order.status }}">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-3 mb-2">
+                        {% with order.items.first as first_item %}
+                          {% if first_item.product.image %}
+                            <img src="{{ first_item.product.image.url }}" alt="{{ first_item.product.name }}" class="w-12 h-12 object-cover rounded-lg flex-shrink-0">
+                          {% else %}
+                            <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <i class="fas fa-image text-gray-400 text-sm"></i>
+                            </div>
+                          {% endif %}
+                        {% endwith %}
+                        <div class="min-w-0 flex-1">
+                          <h3 class="font-semibold text-gray-800 text-sm truncate">
+                            {% for item in order.items.all %}
+                              {{ item.product.name }}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                          </h3>
+                          <p class="text-xs text-gray-600">
+                            {% with order.items.count as item_count %}
+                              {{ item_count }} item{{ item_count|pluralize }}
+                            {% endwith %}
+                            • ₱{{ order.total_amount }}
+                          </p>
+                          <div class="flex flex-wrap gap-2 mt-1">
+                            <span class="text-xs text-gray-500">Order #{{ order.id }}</span>
+                            <span class="text-xs text-gray-500">{{ order.created_at|date:"M d, Y" }}</span>
+                            <span class="text-xs text-gray-500 capitalize">{% if order.delivery %}Delivery{% else %}Pickup{% endif %}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="text-right ml-3 flex-shrink-0">
+                      <!-- Status Badge -->
+                      {% if order.status == 'pending' or order.status == 'pending_confirmation' or order.status == 'confirmed' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          <i class="fas fa-clock mr-1"></i>
+                          Pending
+                        </span>
+                      {% elif order.status == 'ready_for_pickup' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          <i class="fas fa-box-open mr-1"></i>
+                          Ready for Pickup
+                        </span>
+                      {% elif order.status == 'out_for_delivery' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                          <i class="fas fa-truck mr-1"></i>
+                          Out for Delivery
+                        </span>
+                      {% elif order.status == 'completed' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <i class="fas fa-star mr-1"></i>
+                          Completed
+                        </span>
+                      {% elif order.status == 'rejected' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <i class="fas fa-times-circle mr-1"></i>
+                          Rejected
+                        </span>
+                      {% endif %}
+                      
+                      <!-- Action Buttons -->
+                      <div class="mt-2 space-y-1">
+                        {% if order.status == 'completed' %}
+                          {% if order.rating %}
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded whitespace-nowrap inline-block">
+                              <i class="fas fa-check-circle mr-1"></i>
+                              Rated
+                            </span>
+                          {% else %}
+                            <a href="{% url 'rate_order' order.id %}" class="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 whitespace-nowrap inline-block">
+                              <i class="fas fa-star mr-1"></i>
+                              Rate
+                            </a>
+                          {% endif %}
+                        {% elif order.status == 'pending' %}
+                          <button class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 whitespace-nowrap">
+                            <i class="fas fa-times mr-1"></i>
+                            Cancel
+                          </button>
+                        {% endif %}
+                        
+                        {% if order.notes %}
+                          <button onclick="showMessage('{{ order.notes|escapejs }}')" class="text-xs bg-gray-600 text-white px-2 py-1 rounded hover:bg-gray-700 whitespace-nowrap">
+                            <i class="fas fa-comment-dots mr-1"></i>
+                            Notes
+                          </button>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-6">
+                  <i class="fas fa-shopping-bag text-3xl text-gray-300 mb-3"></i>
+                  <p class="text-gray-500 text-sm">No orders found</p>
+                  <a href="{% url 'shop_user' %}" class="inline-block mt-3 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm">
+                    Start Shopping
+                  </a>
+                </div>
+                {% endfor %}
+              </div>
+              </div>
+              <!-- End Orders Tab -->
+
+              <!-- Reservations Tab -->
+              <div id="reservationsContent" class="profile-tab-content hidden">
+            
+            <!-- Reservation Status Tabs -->
+            <div class="flex flex-wrap gap-2 mb-4">
+              <button onclick="filterReservations('all')" class="reservation-filter-btn active px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                All
+              </button>
+              <button onclick="filterReservations('pending')" class="reservation-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                Pending
+              </button>
+              <button onclick="filterReservations('pending_payment')" class="reservation-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                Pending Payment
+              </button>
+              <button onclick="filterReservations('confirmed')" class="reservation-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                Confirmed
+              </button>
+              <button onclick="filterReservations('rejected')" class="reservation-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                Rejected
+              </button>
+              <button onclick="filterReservations('completed')" class="reservation-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200">
+                Completed
+              </button>
+            </div>
+
+            <!-- Reservations List -->
+            <div class="space-y-3 max-h-[60vh] lg:max-h-[70vh] overflow-y-auto pr-2">
+              {% for reservation in reservations %}
+              <div class="reservation-item border border-gray-200 rounded-lg p-3" data-status="{{ reservation.status }}">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3 mb-2">
+                      {% if reservation.product.image %}
+                        <img src="{{ reservation.product.image.url }}" alt="{{ reservation.product.name }}" class="w-12 h-12 object-cover rounded-lg flex-shrink-0">
+                      {% else %}
+                        <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <i class="fas fa-image text-gray-400 text-sm"></i>
+                        </div>
+                      {% endif %}
+                      <div class="min-w-0 flex-1">
+                        <h3 class="font-semibold text-gray-800 text-sm truncate">{{ reservation.product.name }}</h3>
+                        <p class="text-xs text-gray-600">Quantity: {{ reservation.quantity }} • ₱{{ reservation.total_amount }}</p>
+                        <div class="flex flex-wrap gap-2 mt-1">
+                          <span class="text-xs text-gray-500">Reservation #{{ reservation.id }}</span>
+                          <span class="text-xs text-gray-500">{{ reservation.reservation_date|date:"M d, Y" }}</span>
+                          <span class="text-xs text-gray-500">{{ reservation.reservation_time|time:"h:i A" }}</span>
+                          <span class="text-xs text-gray-500 capitalize">
+                            <i class="fas fa-{% if reservation.delivery %}truck{% else %}store{% endif %}"></i>
+                            {% if reservation.delivery %}Delivery{% else %}Pickup{% endif %}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="text-right ml-3 flex-shrink-0">
+                    <!-- Status Badge -->
+                    {% if reservation.status == 'pending' %}
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <i class="fas fa-clock mr-1"></i>
+                        Pending
+                      </span>
+                    {% elif reservation.status == 'pending_payment' %}
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <i class="fas fa-credit-card mr-1"></i>
+                        Pending Payment
+                      </span>
+                    {% elif reservation.status == 'confirmed' %}
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        Confirmed
+                      </span>
+                    {% elif reservation.status == 'rejected' %}
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        <i class="fas fa-times-circle mr-1"></i>
+                        Rejected
+                      </span>
+                    {% elif reservation.status == 'completed' %}
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <i class="fas fa-star mr-1"></i>
+                        Completed
+                      </span>
+                    {% endif %}
+                    
+                    <!-- Action Buttons -->
+                    <div class="mt-2 space-y-1">
+                      {% if reservation.status == 'pending_payment' %}
+                        <a href="{% url 'reservation_payment' reservation.id %}" class="block text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 whitespace-nowrap text-center">
+                          <i class="fas fa-credit-card mr-1"></i>
+                          Pay Now
+                        </a>
+                      {% endif %}
+                      
+                      {% if reservation.status == 'pending' %}
+                        <form method="post" action="{% url 'cancel_reservation' reservation.id %}" onsubmit="return confirm('Are you sure you want to cancel this reservation?');" class="inline">
+                          {% csrf_token %}
+                          <button type="submit" class="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 whitespace-nowrap">
+                            <i class="fas fa-times mr-1"></i>
+                            Cancel
+                          </button>
+                        </form>
+                      {% elif reservation.status == 'completed' %}
+                        <button class="text-xs bg-green-600 text-white px-2 py-1 rounded hover:bg-green-700 whitespace-nowrap">
+                          <i class="fas fa-star mr-1"></i>
+                          Rate
+                        </button>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="text-center py-6">
+                <i class="fas fa-calendar-times text-3xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500 text-sm">No reservations found</p>
+                <a href="{% url 'reservation_shop' %}" class="inline-block mt-3 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm">
+                  Make a Reservation
+                </a>
+              </div>
+              {% endfor %}
+            </div>
+              </div>
+              <!-- End Reservations Tab -->
+
+            </div>
+            <!-- End Tab Content -->
+          </div>
+          <!-- End Tabs Container -->
+        </div>
+        <!-- End Tabs Content -->
+      </div>
+      <!-- End Max Width Container -->
+    </div>
+    <!-- End Profile Content -->
+  </div>
+  <!-- End Main Content Area -->
+
+<!-- Message Modal -->
+<div id="messageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+    <h3 class="text-lg font-semibold mb-4">Message to Seller</h3>
+    <p id="messageContent" class="text-gray-700 mb-4"></p>
+    <button onclick="hideMessage()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+      Close
+    </button>
+  </div>
+</div>
+
+<script>
+  // Tab Switching Function
+  function switchProfileTab(tabName) {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll('.profile-tab-content');
+    tabContents.forEach(content => {
+      content.classList.add('hidden');
+    });
+    
+    // Remove active state from all tab buttons
+    const tabButtons = document.querySelectorAll('.profile-tab-btn');
+    tabButtons.forEach(btn => {
+      btn.classList.remove('text-green-600', 'border-green-600');
+      btn.classList.add('text-gray-600', 'border-transparent');
+    });
+    
+    // Show selected tab content
+    const selectedContent = document.getElementById(tabName + 'Content');
+    if (selectedContent) {
+      selectedContent.classList.remove('hidden');
+    }
+    
+    // Activate selected tab button
+    const selectedButton = document.getElementById(tabName + 'Tab');
+    if (selectedButton) {
+      selectedButton.classList.remove('text-gray-600', 'border-transparent');
+      selectedButton.classList.add('text-green-600', 'border-green-600');
+    }
+  }
+
+  function filterOrders(status) {
+    const orders = document.querySelectorAll('.order-item');
+    const buttons = document.querySelectorAll('.order-filter-btn');
+    
+    // Update button styles
+    buttons.forEach(btn => {
+      btn.classList.remove('active', 'bg-green-100', 'text-green-700');
+      btn.classList.add('bg-gray-100', 'text-gray-700');
+    });
+    
+    event.target.classList.remove('bg-gray-100', 'text-gray-700');
+    event.target.classList.add('active', 'bg-green-100', 'text-green-700');
+    
+    // Filter orders
+    orders.forEach(order => {
+      const orderStatus = order.dataset.status;
+      let shouldShow = false;
+      
+      if (status === 'all') {
+        shouldShow = true;
+      } else if (status === 'pending') {
+        // Show pending, pending_confirmation, and confirmed as "Pending"
+        shouldShow = (orderStatus === 'pending' || orderStatus === 'pending_confirmation' || orderStatus === 'confirmed');
+      } else {
+        shouldShow = (orderStatus === status);
+      }
+      
+      order.style.display = shouldShow ? 'block' : 'none';
+    });
+  }
+  
+  function showMessage(message) {
+    document.getElementById('messageContent').textContent = message;
+    document.getElementById('messageModal').classList.remove('hidden');
+    document.getElementById('messageModal').classList.add('flex');
+  }
+  
+  function hideMessage() {
+    document.getElementById('messageModal').classList.add('hidden');
+    document.getElementById('messageModal').classList.remove('flex');
+  }
+  
+  function filterReservations(status) {
+    const reservations = document.querySelectorAll('.reservation-item');
+    const buttons = document.querySelectorAll('.reservation-filter-btn');
+    
+    // Update button styles
+    buttons.forEach(btn => {
+      btn.classList.remove('active', 'bg-green-100', 'text-green-700');
+      btn.classList.add('bg-gray-100', 'text-gray-700');
+    });
+    
+    event.target.classList.remove('bg-gray-100', 'text-gray-700');
+    event.target.classList.add('active', 'bg-green-100', 'text-green-700');
+    
+    // Filter reservations
+    reservations.forEach(reservation => {
+      if (status === 'all' || reservation.dataset.status === status) {
+        reservation.style.display = 'block';
+      } else {
+        reservation.style.display = 'none';
+      }
+    });
+  }
+
+// Sidebar toggle
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const mainContent = document.getElementById('mainContent');
+  
+  sidebarToggle.addEventListener('click', function() {
+    // On mobile (< 1024px): slide sidebar in from left with overlay
+    if (window.innerWidth < 1024) {
+      sidebar.classList.toggle('show');
+      overlay.classList.toggle('hidden');
+      document.body.classList.toggle('sidebar-open');
+    } else {
+      // On desktop (>= 1024px): collapse to icon-only mode
+      sidebar.classList.toggle('collapsed');
+      
+      // Adjust main content margin
+      if (sidebar.classList.contains('collapsed')) {
+        mainContent.style.marginLeft = '80px';
+      } else {
+        mainContent.style.marginLeft = '280px';
+      }
+    }
+  });
+  
+  // Close sidebar when clicking overlay (mobile only)
+  overlay.addEventListener('click', function() {
+    sidebar.classList.remove('show');
+    overlay.classList.add('hidden');
+    document.body.classList.remove('sidebar-open');
+  });
+  
+  // Dropdown toggle function
+  function toggleDropdown(id, event) {
+    // Prevent event from bubbling to document
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    const dropdown = document.getElementById(id);
+    const allDropdowns = document.querySelectorAll('.dropdown-menu');
+    const allChevrons = document.querySelectorAll('.dropdown-chevron');
+    
+    // Check if dropdown is currently shown
+    const isCurrentlyShown = dropdown.classList.contains('show');
+    
+    // Close all other dropdowns and reset their chevrons
+    allDropdowns.forEach(d => {
+      if (d.id !== id) {
+        d.classList.remove('show');
+      }
+    });
+    
+    allChevrons.forEach(c => {
+      c.classList.remove('rotate');
+    });
+    
+    // Toggle current dropdown
+    dropdown.classList.toggle('show');
+    
+    // Toggle chevron rotation for profile dropdown
+    if (id === 'profileDropdown') {
+      const chevron = document.getElementById('profileChevron');
+      if (chevron) {
+        if (!isCurrentlyShown) {
+          chevron.classList.add('rotate');
+        } else {
+          chevron.classList.remove('rotate');
+        }
+      }
+    }
+  }
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    // Check if click is outside all dropdown containers
+    const isClickInsideDropdown = e.target.closest('.dropdown-menu');
+    const isClickOnButton = e.target.closest('button[onclick*="toggleDropdown"]');
+    
+    if (!isClickInsideDropdown && !isClickOnButton) {
+      document.querySelectorAll('.dropdown-menu').forEach(d => {
+        d.classList.remove('show');
+      });
+      
+      // Reset all chevron rotations
+      document.querySelectorAll('.dropdown-chevron').forEach(c => {
+        c.classList.remove('rotate');
+      });
+    }
+  });
+  
+  // Handle window resize
+  window.addEventListener('resize', function() {
+    if (window.innerWidth >= 1024) {
+      // On desktop: remove mobile classes, restore proper state
+      overlay.classList.add('hidden');
+      sidebar.classList.remove('show');
+      document.body.classList.remove('sidebar-open');
+      
+      // Restore proper margin based on collapsed state
+      if (sidebar.classList.contains('collapsed')) {
+        mainContent.style.marginLeft = '80px';
+      } else {
+        mainContent.style.marginLeft = '280px';
+      }
+    } else {
+      // On mobile: remove desktop classes
+      sidebar.classList.remove('collapsed');
+      mainContent.style.marginLeft = '0';
+    }
+  });
+
+  // In-page search and highlight functionality
+  const pageSearchInput = document.getElementById('pageSearchInput');
+  const clearPageSearch = document.getElementById('clearPageSearch');
+  const searchCounter = document.getElementById('searchCounter');
+  let currentHighlights = [];
+  let currentMatchIndex = 0;
+
+  function removeHighlights() {
+    currentHighlights.forEach(highlight => {
+      const parent = highlight.parentNode;
+      parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+      parent.normalize();
+    });
+    currentHighlights = [];
+    currentMatchIndex = 0;
+    searchCounter.classList.add('hidden');
+  }
+
+  function highlightText(searchTerm) {
+    removeHighlights();
+    
+    if (!searchTerm || searchTerm.trim() === '') {
+      return;
+    }
+
+    const mainContent = document.getElementById('mainContent');
+    if (!mainContent) return;
+
+    const walker = document.createTreeWalker(
+      mainContent,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: function(node) {
+          if (node.parentElement.tagName === 'SCRIPT' || 
+              node.parentElement.tagName === 'STYLE' ||
+              node.parentElement.classList.contains('highlight-match')) {
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+
+    const nodesToHighlight = [];
+    let node;
+    
+    while (node = walker.nextNode()) {
+      const text = node.textContent;
+      const lowerText = text.toLowerCase();
+      const lowerSearch = searchTerm.toLowerCase();
+      
+      if (lowerText.includes(lowerSearch)) {
+        nodesToHighlight.push(node);
+      }
+    }
+
+    nodesToHighlight.forEach(textNode => {
+      const text = textNode.textContent;
+      const lowerText = text.toLowerCase();
+      const lowerSearch = searchTerm.toLowerCase();
+      
+      let lastIndex = 0;
+      const fragment = document.createDocumentFragment();
+      
+      let index = lowerText.indexOf(lowerSearch);
+      while (index !== -1) {
+        if (index > lastIndex) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+        }
+        
+        const mark = document.createElement('mark');
+        mark.className = 'highlight-match';
+        mark.style.backgroundColor = '#fef08a';
+        mark.style.padding = '2px 0';
+        mark.style.borderRadius = '2px';
+        mark.textContent = text.substring(index, index + searchTerm.length);
+        fragment.appendChild(mark);
+        currentHighlights.push(mark);
+        
+        lastIndex = index + searchTerm.length;
+        index = lowerText.indexOf(lowerSearch, lastIndex);
+      }
+      
+      if (lastIndex < text.length) {
+        fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+      }
+      
+      textNode.parentNode.replaceChild(fragment, textNode);
+    });
+
+    if (currentHighlights.length > 0) {
+      searchCounter.textContent = `${currentHighlights.length} found`;
+      searchCounter.classList.remove('hidden');
+      
+      if (currentHighlights[0]) {
+        currentHighlights[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        currentHighlights[0].style.backgroundColor = '#fbbf24';
+      }
+    }
+  }
+
+  pageSearchInput.addEventListener('input', function() {
+    const searchTerm = this.value.trim();
+    
+    if (searchTerm) {
+      clearPageSearch.classList.remove('hidden');
+      highlightText(searchTerm);
+    } else {
+      clearPageSearch.classList.add('hidden');
+      removeHighlights();
+    }
+  });
+
+  clearPageSearch.addEventListener('click', function() {
+    pageSearchInput.value = '';
+    clearPageSearch.classList.add('hidden');
+    removeHighlights();
+    pageSearchInput.focus();
+  });
+
+  pageSearchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && currentHighlights.length > 0) {
+      e.preventDefault();
+      
+      if (currentHighlights[currentMatchIndex]) {
+        currentHighlights[currentMatchIndex].style.backgroundColor = '#fef08a';
+      }
+      
+      currentMatchIndex = (currentMatchIndex + 1) % currentHighlights.length;
+      
+      if (currentHighlights[currentMatchIndex]) {
+        currentHighlights[currentMatchIndex].style.backgroundColor = '#fbbf24';
+        currentHighlights[currentMatchIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      
+      searchCounter.textContent = `${currentMatchIndex + 1} of ${currentHighlights.length}`;
+    }
+  });
+
+  // Rating submission success popup
+  {% if request.GET.rating_submitted %}
+  window.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('ratingSuccessModal');
+    modal.classList.remove('hidden');
+    
+    // Auto close after 5 seconds
+    setTimeout(function() {
+      closeRatingModal();
+    }, 5000);
+  });
+  {% endif %}
+
+  function closeRatingModal() {
+    const modal = document.getElementById('ratingSuccessModal');
+    modal.classList.add('opacity-0');
+    setTimeout(function() {
+      modal.classList.add('hidden');
+      // Remove the query parameter from URL
+      const url = new URL(window.location);
+      url.searchParams.delete('rating_submitted');
+      window.history.replaceState({}, '', url);
+    }, 300);
+  }
+
+  // Toggle password visibility
+  function togglePassword(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon = document.getElementById(iconId);
+    
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  }
+</script>
+
+<!-- Rating Success Modal -->
+<div id="ratingSuccessModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center transform transition-all">
+    <!-- Success Icon -->
+    <div class="mx-auto flex items-center justify-center h-20 w-20 rounded-full bg-green-100 mb-4">
+      <i class="fas fa-check-circle text-green-600 text-5xl"></i>
+    </div>
+    
+    <!-- Title -->
+    <h3 class="text-2xl font-bold text-gray-900 mb-2">Thank You!</h3>
+    
+    <!-- Message -->
+    <p class="text-gray-600 mb-6">
+      Your rating has been successfully submitted. We truly appreciate your feedback and will use it to improve our products and services!
+    </p>
+    
+    <!-- Star decoration -->
+    <div class="flex justify-center gap-2 mb-6">
+      <i class="fas fa-star text-yellow-400 text-xl"></i>
+      <i class="fas fa-star text-yellow-400 text-xl"></i>
+      <i class="fas fa-star text-yellow-400 text-xl"></i>
+      <i class="fas fa-star text-yellow-400 text-xl"></i>
+      <i class="fas fa-star text-yellow-400 text-xl"></i>
+    </div>
+    
+    <!-- Close Button -->
+    <button onclick="closeRatingModal()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+      Continue
+    </button>
+  </div>
+</div>
+
+</body>
+</html>

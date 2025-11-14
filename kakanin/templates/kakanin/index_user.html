@@ -1,0 +1,573 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home - Nanay's Kakanin</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Smooth transitions */
+    .transition-all {
+      transition: all 300ms ease-in-out;
+    }
+    
+    /* Mobile: Sidebar hidden by default, slides in from left */
+    #sidebar {
+      transform: translateX(-100%);
+    }
+    
+    #sidebar.show {
+      transform: translateX(0);
+    }
+    
+    /* Desktop: sidebar always visible in full width */
+    @media (min-width: 1024px) {
+      #sidebar {
+        transform: translateX(0);
+        width: 280px;
+      }
+      
+      /* When collapsed on desktop, show icon-only */
+      #sidebar.collapsed {
+        width: 80px;
+      }
+      
+      /* Hide text labels when collapsed */
+      #sidebar.collapsed .sidebar-text {
+        display: none;
+      }
+      
+      /* Center icons when collapsed */
+      #sidebar.collapsed nav a {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+      }
+    }
+    
+    /* Dropdown animations */
+    .dropdown-menu {
+      display: none;
+    }
+    
+    .dropdown-menu.show {
+      display: block;
+    }
+  </style>
+</head>
+
+<body class="bg-green-50 h-full">
+
+ <!-- Top Navbar -->
+<header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center justify-between px-4 lg:px-6">
+
+  <!-- Left Section: Logo -->
+  <div class="flex items-center gap-3">
+    <a href="{% url 'index_user' %}" class="flex items-center gap-3">
+      <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+      <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+    </a>
+  </div>
+
+  <!-- Center Section: Menu Icon + Search Bar -->
+  <div class="flex items-center gap-3 flex-1 justify-center px-4">
+    <!-- Menu Toggle (beside search bar like NiceAdmin) -->
+    <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+      <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+    </button>
+    
+    <!-- Search Bar (Desktop) -->
+    <div class="hidden md:flex flex-1 max-w-xl mx-8">
+      <div class="relative w-full">
+        <input type="text" 
+               id="pageSearchInput"
+               placeholder="Search on this page..." 
+               class="w-full px-4 py-2 pl-10 pr-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <span id="searchCounter" class="text-xs text-gray-500 hidden"></span>
+          <button type="button" id="clearPageSearch" class="text-gray-400 hover:text-gray-600 p-1 hidden">
+            <i class="fas fa-times text-sm"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right Icons -->
+    <div class="ml-auto flex items-center gap-2">
+      <!-- Search Icon (Mobile) -->
+      <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
+        <i class="fa-solid fa-search text-xl text-gray-600"></i>
+      </button>
+      
+      <!-- Notifications -->
+      <div class="relative">
+        <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+          <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+          {% if unread_notifications_count > 0 %}
+            <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ unread_notifications_count }}</span>
+          {% endif %}
+        </button>
+        
+        <!-- Notifications Dropdown -->
+        <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <p class="text-sm font-semibold text-gray-700">{% if unread_notifications_count > 0 %}You have {{ unread_notifications_count }} new notification{{ unread_notifications_count|pluralize }}{% else %}No new notifications{% endif %}</p>
+          </div>
+          <div class="max-h-64 overflow-y-auto">
+            {% if recent_notifications %}
+              {% for notification in recent_notifications %}
+                <a href="{% url 'user_notifications' %}" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                  <div class="text-xl mt-1 {% if 'Reservation' in notification.message %}text-green-600{% elif 'Order' in notification.message %}text-blue-600{% else %}text-yellow-500{% endif %}">
+                    {% if 'Reservation' in notification.message %}
+                      <i class="fas fa-calendar-check"></i>
+                    {% elif 'Order' in notification.message %}
+                      <i class="fas fa-shopping-cart"></i>
+                    {% else %}
+                      <i class="fas fa-info-circle"></i>
+                    {% endif %}
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="text-sm font-semibold text-gray-800">{{ notification.get_type_display }}</h4>
+                    <p class="text-xs text-gray-500">{{ notification.message|truncatewords:10 }}</p>
+                    <p class="text-xs text-gray-400 mt-1"><i class="fas fa-clock"></i> {{ notification.created_at|timesince }} ago</p>
+                  </div>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="px-4 py-6 text-center text-gray-500 text-sm">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No new notifications</p>
+              </div>
+            {% endif %}
+          </div>
+          <div class="px-4 py-2 border-t border-gray-200">
+            <a href="{% url 'user_notifications' %}" class="text-sm text-primary hover:underline">Show all notifications</a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Profile -->
+      <div class="relative">
+        <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+          {% if user.userprofile.profile_picture %}
+          <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% else %}
+          <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% endif %}
+          <span class="hidden md:block text-sm font-medium text-secondary">{{ user.get_full_name|default:user.username }}</span>
+          <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+        </button>
+        
+        <!-- Profile Dropdown -->
+        <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <h6 class="text-sm font-semibold text-gray-800">{{ user.get_full_name|default:user.username }}</h6>
+            <span class="text-xs text-gray-500">{{ user.email }}</span>
+          </div>
+          <div class="px-4 py-2">
+            <div class="flex items-start gap-3 py-2">
+              <i class="bi bi-envelope text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Email</p>
+                <p class="text-sm text-gray-700">{{ user.email }}</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 py-2">
+              <i class="bi bi-telephone text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Phone</p>
+                <p class="text-sm text-gray-700">{{ user.userprofile.phone|default:'Not provided' }}</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 py-2">
+              <i class="bi bi-geo-alt text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Address</p>
+                <p class="text-sm text-gray-700">{{ user.userprofile.get_full_address|default:'Not provided' }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors">
+            <i class="bi bi-box-arrow-right text-lg text-red-600"></i>
+            <span class="text-sm text-red-600">Sign Out</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+    <!-- Navigation -->
+    <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+      <a href="{% url 'index_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-green-700 bg-green-50 hover:bg-green-100 transition">
+        <i class="fa-solid fa-house text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Home</span>
+      </a>
+      <a href="{% url 'shop_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shop text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Shop</span>
+      </a>
+      <a href="{% url 'view_cart' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i>
+        <span class="sidebar-text flex items-center gap-2">
+          Cart
+          {% if total_cart_count > 0 %}
+            <span class="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-semibold">{{ total_cart_count }}</span>
+          {% endif %}
+        </span>
+      </a>
+      <a href="{% url 'about' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-circle-info text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">About</span>
+      </a>
+      <a href="{% url 'messages_inbox' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition relative">
+        <i class="fa-solid fa-message text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Messages</span>
+        {% if unread_messages_count > 0 %}
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">{{ unread_messages_count }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'user_profile' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-user text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Profile</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Overlay for mobile -->
+  <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+
+  <!-- Main Content Area -->
+  <div id="mainContent" class="min-h-screen lg:ml-[280px] transition-all pt-20 overflow-x-hidden">
+    <!-- Hero Section -->
+    <div>
+      <div class="relative bg-gradient-to-br from-green-50 to-teal-50 min-h-[calc(100vh-80px)] flex items-center">
+        <!-- Background Pattern -->
+        <div class="absolute inset-0 opacity-10">
+          <div class="absolute top-20 left-10 w-40 h-40 rounded-full bg-green-300"></div>
+          <div class="absolute bottom-20 right-10 w-60 h-60 rounded-full bg-teal-300"></div>
+        </div>
+        
+        <div class="container mx-auto px-4 py-12 md:py-16 relative z-10">
+          <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col lg:flex-row items-center justify-center gap-12">
+              <!-- Left Content -->
+              <div class="lg:w-1/2 text-center">
+                <h1 class="playfair text-4xl md:text-5xl lg:text-6xl font-bold text-gray-800 mb-6 leading-tight">
+                  Welcome to Food Heaven
+                </h1>
+                <div class="mb-8">
+                  <h2 class="text-2xl md:text-3xl lg:text-4xl font-semibold text-green-600 mb-2">
+                    Where Flavor Meets Excellence!
+                  </h2>
+                  <div class="h-1 w-24 bg-teal-500 mx-auto my-4"></div>
+                </div>
+                
+                <!-- Welcome Message -->
+                <div class="mb-10 max-w-lg mx-auto">
+                  <p class="text-gray-600 text-lg mb-4">Welcome, <span class="font-semibold text-green-600">{{ user.first_name|default:user.username }}</span>!</p>
+                  <p class="text-gray-600 leading-relaxed">
+                    Discover our authentic Filipino kakanin made with love and traditional recipes passed down through generations. Each bite is a taste of home and heritage.
+                  </p>
+                </div>
+                
+                <!-- View Menu Button -->
+                <div class="mb-8">
+                  <a href="{% url 'shop_user' %}" class="inline-flex items-center px-8 py-4 bg-teal-600 text-white text-lg font-semibold rounded-full hover:bg-teal-700 transition-colors shadow-lg transform hover:scale-105">
+                    <span class="mr-3">View Menu</span>
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+              
+              <!-- Right Content - Image Grid -->
+              <div class="lg:w-1/2">
+                <div class="relative max-w-md mx-auto">
+                  <div class="bg-white rounded-2xl shadow-2xl p-4 md:p-6">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                      {% for img in kakanin_images|slice:':6' %}
+                        <div class="aspect-square rounded-lg md:rounded-xl border border-gray-100 overflow-hidden ring-1 ring-gray-50 hover:ring-green-200 transition transform hover:scale-105">
+                          <img src="{% static img %}" alt="Kakanin image" class="w-full h-full object-cover" loading="lazy">
+                        </div>
+                      {% empty %}
+                        <div class="col-span-full text-center text-gray-500 py-8 md:py-10 text-sm md:text-base">
+                          No kakanin images found
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  
+                  <!-- Floating accents - adjusted to not overflow -->
+                  <div class="absolute top-0 left-0 w-16 h-16 bg-yellow-400 rounded-full opacity-80 -z-10 transform -translate-x-1/2 -translate-y-1/2"></div>
+                  <div class="absolute bottom-0 right-0 w-20 h-20 bg-orange-400 rounded-full opacity-60 -z-10 transform translate-x-1/3 translate-y-1/3"></div>
+                  <div class="absolute top-1/2 right-0 w-12 h-12 bg-green-400 rounded-full opacity-70 -z-10 transform translate-x-1/4"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const mainContent = document.getElementById('mainContent');
+    
+    sidebarToggle.addEventListener('click', function() {
+      // On mobile (< 1024px): slide sidebar in from left with overlay
+      if (window.innerWidth < 1024) {
+        sidebar.classList.toggle('show');
+        overlay.classList.toggle('hidden');
+      } else {
+        // On desktop (>= 1024px): collapse to icon-only mode
+        sidebar.classList.toggle('collapsed');
+        
+        // Adjust main content margin
+        if (sidebar.classList.contains('collapsed')) {
+          mainContent.style.marginLeft = '80px';
+        } else {
+          mainContent.style.marginLeft = '280px';
+        }
+      }
+    });
+    
+    // Close sidebar when clicking overlay (mobile only)
+    overlay.addEventListener('click', function() {
+      sidebar.classList.remove('show');
+      overlay.classList.add('hidden');
+    });
+    
+    // Dropdown toggle function
+    function toggleDropdown(id) {
+      const dropdown = document.getElementById(id);
+      const allDropdowns = document.querySelectorAll('.dropdown-menu');
+      
+      // Close all other dropdowns
+      allDropdowns.forEach(d => {
+        if (d.id !== id) {
+          d.classList.remove('show');
+        }
+      });
+      
+      // Toggle current dropdown
+      dropdown.classList.toggle('show');
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.relative')) {
+        document.querySelectorAll('.dropdown-menu').forEach(d => {
+          d.classList.remove('show');
+        });
+      }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+      if (window.innerWidth >= 1024) {
+        // On desktop: remove mobile classes, restore proper state
+        overlay.classList.add('hidden');
+        sidebar.classList.remove('show');
+        
+        // Restore proper margin based on collapsed state
+        if (sidebar.classList.contains('collapsed')) {
+          mainContent.style.marginLeft = '80px';
+        } else {
+          mainContent.style.marginLeft = '280px';
+        }
+      } else {
+        // On mobile: remove desktop classes
+        sidebar.classList.remove('collapsed');
+        mainContent.style.marginLeft = '0';
+      }
+    });
+
+    // In-page search and highlight functionality
+    const pageSearchInput = document.getElementById('pageSearchInput');
+    const clearPageSearch = document.getElementById('clearPageSearch');
+    const searchCounter = document.getElementById('searchCounter');
+    let currentHighlights = [];
+    let currentMatchIndex = 0;
+
+    function removeHighlights() {
+      currentHighlights.forEach(highlight => {
+        const parent = highlight.parentNode;
+        parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+        parent.normalize();
+      });
+      currentHighlights = [];
+      currentMatchIndex = 0;
+      searchCounter.classList.add('hidden');
+    }
+
+    function highlightText(searchTerm) {
+      removeHighlights();
+      
+      if (!searchTerm || searchTerm.trim() === '') {
+        return;
+      }
+
+      const mainContent = document.getElementById('mainContent');
+      if (!mainContent) return;
+
+      const walker = document.createTreeWalker(
+        mainContent,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: function(node) {
+            // Skip script and style tags
+            if (node.parentElement.tagName === 'SCRIPT' || 
+                node.parentElement.tagName === 'STYLE' ||
+                node.parentElement.classList.contains('highlight-match')) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        }
+      );
+
+      const nodesToHighlight = [];
+      let node;
+      
+      while (node = walker.nextNode()) {
+        const text = node.textContent;
+        const lowerText = text.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        if (lowerText.includes(lowerSearch)) {
+          nodesToHighlight.push(node);
+        }
+      }
+
+      nodesToHighlight.forEach(textNode => {
+        const text = textNode.textContent;
+        const lowerText = text.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+        
+        let lastIndex = 0;
+        const fragment = document.createDocumentFragment();
+        
+        let index = lowerText.indexOf(lowerSearch);
+        while (index !== -1) {
+          // Add text before match
+          if (index > lastIndex) {
+            fragment.appendChild(document.createTextNode(text.substring(lastIndex, index)));
+          }
+          
+          // Add highlighted match
+          const mark = document.createElement('mark');
+          mark.className = 'highlight-match';
+          mark.style.backgroundColor = '#fef08a';
+          mark.style.padding = '2px 0';
+          mark.style.borderRadius = '2px';
+          mark.textContent = text.substring(index, index + searchTerm.length);
+          fragment.appendChild(mark);
+          currentHighlights.push(mark);
+          
+          lastIndex = index + searchTerm.length;
+          index = lowerText.indexOf(lowerSearch, lastIndex);
+        }
+        
+        // Add remaining text
+        if (lastIndex < text.length) {
+          fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+        }
+        
+        textNode.parentNode.replaceChild(fragment, textNode);
+      });
+
+      // Update counter
+      if (currentHighlights.length > 0) {
+        searchCounter.textContent = `${currentHighlights.length} found`;
+        searchCounter.classList.remove('hidden');
+        
+        // Scroll to first match
+        if (currentHighlights[0]) {
+          currentHighlights[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+          currentHighlights[0].style.backgroundColor = '#fbbf24';
+        }
+      }
+    }
+
+    // Search input event
+    pageSearchInput.addEventListener('input', function() {
+      const searchTerm = this.value.trim();
+      
+      if (searchTerm) {
+        clearPageSearch.classList.remove('hidden');
+        highlightText(searchTerm);
+      } else {
+        clearPageSearch.classList.add('hidden');
+        removeHighlights();
+      }
+    });
+
+    // Clear search
+    clearPageSearch.addEventListener('click', function() {
+      pageSearchInput.value = '';
+      clearPageSearch.classList.add('hidden');
+      removeHighlights();
+      pageSearchInput.focus();
+    });
+
+    // Enter key to cycle through matches
+    pageSearchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && currentHighlights.length > 0) {
+        e.preventDefault();
+        
+        // Remove highlight from current
+        if (currentHighlights[currentMatchIndex]) {
+          currentHighlights[currentMatchIndex].style.backgroundColor = '#fef08a';
+        }
+        
+        // Move to next match
+        currentMatchIndex = (currentMatchIndex + 1) % currentHighlights.length;
+        
+        // Highlight and scroll to new match
+        if (currentHighlights[currentMatchIndex]) {
+          currentHighlights[currentMatchIndex].style.backgroundColor = '#fbbf24';
+          currentHighlights[currentMatchIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // Update counter
+        searchCounter.textContent = `${currentMatchIndex + 1} of ${currentHighlights.length}`;
+      }
+    });
+  </script>
+
+</body>
+</html>

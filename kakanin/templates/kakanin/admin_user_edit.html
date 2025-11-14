@@ -1,0 +1,269 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit User - {{ user_obj.username }}</title>
+    <link rel="stylesheet" href="{% static 'kakanin/dist/output.css' %}">
+    <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+    <!-- Icon Libraries with CDN fallback -->
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+    <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+    <script>
+        // Toggle password visibility
+        function togglePassword(inputId, iconId) {
+          const input = document.getElementById(inputId);
+          const icon = document.getElementById(iconId);
+          
+          if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+          } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+          }
+        }
+    </script>
+</head>
+<body class="bg-green-50">
+
+<!-- Main Content -->
+<div class="w-full overflow-x-hidden overflow-y-auto">
+    <div class="p-6">
+        <!-- Edit User Form -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="p-6">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Username -->
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username *</label>
+                            <input type="text" name="username" id="username" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                   value="{{ user_obj.username }}">
+                            {% if form.username.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Email -->
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                            <input type="email" name="email" id="email" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                   value="{{ user_obj.email }}">
+                            {% if form.email.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- First Name -->
+                        <div>
+                            <label for="first_name" class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                            <input type="text" name="first_name" id="first_name"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                   value="{{ user_obj.first_name }}">
+                        </div>
+
+                        <!-- Last Name -->
+                        <div>
+                            <label for="last_name" class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                            <input type="text" name="last_name" id="last_name"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                   value="{{ user_obj.last_name }}">
+                        </div>
+
+                        <!-- Password Change -->
+                        <div>
+                            <label for="password1" class="block text-sm font-medium text-gray-700 mb-2">New Password (leave blank to keep current)</label>
+                            <div class="relative">
+                                <input type="password" name="password1" id="password1"
+                                       minlength="8" maxlength="20"
+                                       pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^\s]{8,20}$"
+                                       class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                       onfocus="document.getElementById('editPasswordRequirements').classList.remove('hidden')"
+                                       onblur="document.getElementById('editPasswordRequirements').classList.add('hidden')">
+                                <button type="button" onclick="togglePassword('password1', 'editEyeIcon1')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                                    <i id="editEyeIcon1" class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div id="editPasswordRequirements" class="hidden mt-2 text-xs text-gray-600 space-y-1 bg-gray-50 p-3 rounded border border-gray-200">
+                                <p class="flex items-center gap-2">
+                                    <span class="text-gray-400">○</span> 8-20 characters
+                                </p>
+                                <p class="flex items-center gap-2">
+                                    <span class="text-gray-400">○</span> At least one capital letter (A to Z)
+                                </p>
+                                <p class="flex items-center gap-2">
+                                    <span class="text-gray-400">○</span> At least one lowercase letter (a to z)
+                                </p>
+                                <p class="flex items-center gap-2">
+                                    <span class="text-gray-400">○</span> At least one number (0 to 9)
+                                </p>
+                                <p class="flex items-center gap-2">
+                                    <span class="text-gray-400">○</span> No spaces
+                                </p>
+                            </div>
+                            {% if form.password1.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Confirm Password -->
+                        <div>
+                            <label for="password2" class="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                            <div class="relative">
+                                <input type="password" name="password2" id="password2"
+                                       class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <button type="button" onclick="togglePassword('password2', 'editEyeIcon2')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                                    <i id="editEyeIcon2" class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            {% if form.password2.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- User Permissions -->
+                    <div class="mt-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">User Permissions</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <input type="checkbox" name="is_active" id="is_active" {% if user_obj.is_active %}checked{% endif %}
+                                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                <label for="is_active" class="ml-2 block text-sm text-gray-900">Active</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" name="is_staff" id="is_staff" {% if user_obj.is_staff %}checked{% endif %}
+                                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                <label for="is_staff" class="ml-2 block text-sm text-gray-900">Staff Status</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" name="is_superuser" id="is_superuser" {% if user_obj.is_superuser %}checked{% endif %}
+                                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                                <label for="is_superuser" class="ml-2 block text-sm text-gray-900">Superuser Status</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Information -->
+                    <div class="mt-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Profile Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Phone -->
+                            <div>
+                                <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                                <input type="text" name="phone" id="phone" required placeholder="e.g., 09123456789"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                       value="{{ user_obj.userprofile.phone|default:'' }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Address (Naval, Biliran) -->
+                    <div class="mt-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-2 flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt text-green-600"></i>
+                            Delivery Address
+                        </h3>
+                        <p class="text-sm text-gray-600 mb-4 bg-blue-50 p-3 rounded-md">
+                            ℹ️ Delivery is available only within the Municipality of Naval, Biliran.
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Barangay -->
+                            <div>
+                                <label for="barangay" class="block text-sm font-medium text-gray-700 mb-2">Barangay *</label>
+                                <select name="barangay" id="barangay" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    <option value="">-- Select Barangay --</option>
+                                    <option value="agpangi" {% if user_obj.userprofile.barangay == 'agpangi' %}selected{% endif %}>Agpangi</option>
+                                    <option value="anislagan" {% if user_obj.userprofile.barangay == 'anislagan' %}selected{% endif %}>Anislagan</option>
+                                    <option value="atipolo" {% if user_obj.userprofile.barangay == 'atipolo' %}selected{% endif %}>Atipolo</option>
+                                    <option value="borac" {% if user_obj.userprofile.barangay == 'borac' %}selected{% endif %}>Borac</option>
+                                    <option value="cabungaan" {% if user_obj.userprofile.barangay == 'cabungaan' %}selected{% endif %}>Cabungaan</option>
+                                    <option value="calumpang" {% if user_obj.userprofile.barangay == 'calumpang' %}selected{% endif %}>Calumpang</option>
+                                    <option value="capiñahan" {% if user_obj.userprofile.barangay == 'capiñahan' %}selected{% endif %}>Capiñahan</option>
+                                    <option value="caraycaray" {% if user_obj.userprofile.barangay == 'caraycaray' %}selected{% endif %}>Caraycaray</option>
+                                    <option value="catmon" {% if user_obj.userprofile.barangay == 'catmon' %}selected{% endif %}>Catmon</option>
+                                    <option value="haguikhikan" {% if user_obj.userprofile.barangay == 'haguikhikan' %}selected{% endif %}>Haguikhikan</option>
+                                    <option value="imelda" {% if user_obj.userprofile.barangay == 'imelda' %}selected{% endif %}>Imelda</option>
+                                    <option value="larrazabal" {% if user_obj.userprofile.barangay == 'larrazabal' %}selected{% endif %}>Larrazabal</option>
+                                    <option value="libtong" {% if user_obj.userprofile.barangay == 'libtong' %}selected{% endif %}>Libtong</option>
+                                    <option value="libertad" {% if user_obj.userprofile.barangay == 'libertad' %}selected{% endif %}>Libertad</option>
+                                    <option value="lico" {% if user_obj.userprofile.barangay == 'lico' %}selected{% endif %}>Lico</option>
+                                    <option value="lucsoon" {% if user_obj.userprofile.barangay == 'lucsoon' %}selected{% endif %}>Lucsoon</option>
+                                    <option value="mabini" {% if user_obj.userprofile.barangay == 'mabini' %}selected{% endif %}>Mabini</option>
+                                    <option value="padre_inocentes_garcia" {% if user_obj.userprofile.barangay == 'padre_inocentes_garcia' %}selected{% endif %}>Padre Inocentes Garcia (Pob.)</option>
+                                    <option value="padre_sergio_eamiguel" {% if user_obj.userprofile.barangay == 'padre_sergio_eamiguel' %}selected{% endif %}>Padre Sergio Eamiguel</option>
+                                    <option value="sabang" {% if user_obj.userprofile.barangay == 'sabang' %}selected{% endif %}>Sabang</option>
+                                    <option value="san_pablo" {% if user_obj.userprofile.barangay == 'san_pablo' %}selected{% endif %}>San Pablo</option>
+                                    <option value="santo_nino" {% if user_obj.userprofile.barangay == 'santo_nino' %}selected{% endif %}>Santo Niño</option>
+                                    <option value="santissimo_rosario" {% if user_obj.userprofile.barangay == 'santissimo_rosario' %}selected{% endif %}>Santissimo Rosario Pob. (Santo Rosa)</option>
+                                    <option value="talustusan" {% if user_obj.userprofile.barangay == 'talustusan' %}selected{% endif %}>Talustusan</option>
+                                    <option value="villa_caneja" {% if user_obj.userprofile.barangay == 'villa_caneja' %}selected{% endif %}>Villa Caneja</option>
+                                    <option value="villa_consuelo" {% if user_obj.userprofile.barangay == 'villa_consuelo' %}selected{% endif %}>Villa Consuelo</option>
+                                </select>
+                            </div>
+
+                            <!-- Zone / Purok -->
+                            <div>
+                                <label for="zone" class="block text-sm font-medium text-gray-700 mb-2">Zone / Purok *</label>
+                                <input type="text" name="zone" id="zone" required placeholder="e.g., Zone 1, Purok 3"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                                       value="{{ user_obj.userprofile.zone|default:'' }}">
+                            </div>
+
+                            <!-- Additional Notes -->
+                            <div class="md:col-span-2">
+                                <label for="additional_notes" class="block text-sm font-medium text-gray-700 mb-2">Additional Notes / Nearest Landmark</label>
+                                <textarea name="additional_notes" id="additional_notes" rows="3" placeholder="e.g., Near church, beside barangay hall, yellow gate"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">{{ user_obj.userprofile.additional_notes|default:'' }}</textarea>
+                                <p class="mt-1 text-xs text-gray-500">Optional: Provide landmarks or directions to help with delivery</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Statistics -->
+                    <div class="mt-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">User Statistics</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-600">Total Orders</p>
+                                <p class="text-2xl font-bold text-gray-900">{{ user_obj.order_set.count }}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-600">Date Joined</p>
+                                <p class="text-lg font-medium text-gray-900">{{ user_obj.date_joined|date:"M d, Y" }}</p>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-600">Last Login</p>
+                                <p class="text-lg font-medium text-gray-900">
+                                    {% if user_obj.last_login %}
+                                        {{ user_obj.last_login|date:"M d, Y H:i" }}
+                                    {% else %}
+                                        Never
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="mt-8 flex justify-end">
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-md font-semibold">
+                            Update User
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

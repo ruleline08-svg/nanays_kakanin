@@ -1,0 +1,30 @@
+<script>
+  // Dropdown toggle function
+  function toggleDropdown(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    const allDropdowns = document.querySelectorAll('[id$="Dropdown"]');
+    
+    // Close all other dropdowns
+    allDropdowns.forEach(d => {
+      if (d.id !== dropdownId) {
+        d.classList.add('hidden');
+      }
+    });
+    
+    // Toggle current dropdown
+    dropdown.classList.toggle('hidden');
+  }
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(event) {
+    const dropdowns = document.querySelectorAll('[id$="Dropdown"]');
+    const isClickInsideDropdown = event.target.closest('[onclick*="toggleDropdown"]') || 
+                                   event.target.closest('[id$="Dropdown"]');
+    
+    if (!isClickInsideDropdown) {
+      dropdowns.forEach(dropdown => {
+        dropdown.classList.add('hidden');
+      });
+    }
+  });
+</script>

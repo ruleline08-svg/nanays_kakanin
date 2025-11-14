@@ -1,0 +1,136 @@
+{% load static %}
+<!-- Top Navbar -->
+<nav class="bg-white border-b sticky top-0 z-20 shadow-sm">
+  <div class="flex items-center h-16 px-4 gap-4">
+    <!-- Left: Logo + Brand -->
+    <div class="flex items-center gap-3 min-w-fit">
+      <a href="{% url 'index_user' %}" class="flex items-center gap-3">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Nanay's Kakanin" class="w-9 h-9 rounded-full">
+        <div class="hidden lg:block">
+          <h1 class="text-base font-bold text-green-700 leading-tight">Nanay's Kakanin</h1>
+          <p class="text-xs text-gray-500">Taste of home</p>
+        </div>
+      </a>
+    </div>
+
+    <!-- Hamburger Menu (Toggle Sidebar) -->
+    <button id="menuBtn" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Toggle menu">
+      <i class="fa-solid fa-bars text-xl text-gray-600"></i>
+    </button>
+
+    <!-- Center: Search Bar -->
+    <div class="flex-1 max-w-2xl mx-4">
+      <form action="{% url 'shop_user' %}" method="GET" class="relative">
+        <input type="text" 
+               name="search"
+               placeholder="Search products..." 
+               value="{{ search_query|default:'' }}"
+               class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+        <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+          <i class="fas fa-search text-sm"></i>
+        </button>
+      </form>
+    </div>
+
+    <!-- Right: Icons + Profile -->
+    <div class="flex items-center gap-2">
+      <!-- Notifications -->
+      <div class="relative">
+        <button class="p-2 rounded-lg hover:bg-gray-100 relative" onclick="toggleDropdown('notifDropdown')">
+          <i class="fas fa-bell text-xl text-gray-700"></i>
+          {% if unread_notifications_count > 0 %}
+          <span class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+            {{ unread_notifications_count }}
+          </span>
+          {% endif %}
+        </button>
+        
+        <!-- Notifications Dropdown -->
+        <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-y-auto z-50">
+          <div class="p-3 border-b border-gray-200 flex items-center justify-between">
+            <h3 class="font-semibold text-gray-800">Notifications</h3>
+            {% if unread_notifications_count > 0 %}
+            <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">{{ unread_notifications_count }} new</span>
+            {% endif %}
+          </div>
+          <div class="divide-y divide-gray-100">
+            {% for notif in recent_notifications %}
+            <a href="{% if notif.order %}{% url 'order_detail' notif.order.id %}{% elif notif.reservation %}{% url 'order_detail' notif.reservation.id %}{% else %}#{% endif %}" 
+               class="block p-3 hover:bg-gray-50 transition {% if not notif.read %}bg-blue-50{% endif %}">
+              <div class="flex gap-3">
+                <div class="flex-shrink-0">
+                  <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-{% if notif.type == 'order_confirmed' %}check-circle{% elif notif.type == 'order_ready' %}box{% elif notif.type == 'order_delivered' %}truck{% else %}bell{% endif %} text-green-600"></i>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm text-gray-800 {% if not notif.read %}font-semibold{% endif %}">{{ notif.message }}</p>
+                  <p class="text-xs text-gray-500 mt-1">{{ notif.created_at|timesince }} ago</p>
+                </div>
+              </div>
+            </a>
+            {% empty %}
+            <div class="p-6 text-center text-gray-500">
+              <i class="fas fa-bell-slash text-3xl mb-2"></i>
+              <p class="text-sm">No notifications yet</p>
+            </div>
+            {% endfor %}
+          </div>
+          {% if recent_notifications %}
+          <div class="p-2 border-t border-gray-200">
+            <a href="{% url 'user_profile' %}" class="block text-center text-sm text-green-600 hover:text-green-700 font-medium py-2">
+              View all notifications
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Profile Dropdown -->
+      <div class="relative">
+        <button onclick="toggleDropdown('profileDropdown')" class="flex items-center gap-2 p-1 rounded-lg hover:bg-gray-100">
+          {% if user.userprofile.profile_picture %}
+          <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile" class="w-9 h-9 rounded-full object-cover ring-2 ring-green-300">
+          {% else %}
+          <div class="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center ring-2 ring-green-300">
+            <i class="fas fa-user text-green-600"></i>
+          </div>
+          {% endif %}
+          <span class="hidden lg:block text-sm font-medium text-gray-700">{{ user.get_full_name|default:user.username }}</span>
+          <i class="fas fa-chevron-down text-xs text-gray-500 hidden lg:block"></i>
+        </button>
+
+        <!-- Profile Dropdown Menu -->
+        <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+          <div class="p-3 border-b border-gray-200">
+            <p class="text-sm font-semibold text-gray-800">{{ user.get_full_name|default:user.username }}</p>
+            <p class="text-xs text-gray-500">{{ user.email }}</p>
+          </div>
+          <div class="py-2">
+            <a href="{% url 'user_profile' %}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+              <i class="fas fa-user w-4"></i>
+              <span>My Profile</span>
+            </a>
+            <a href="{% url 'view_cart' %}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+              <i class="fas fa-shopping-cart w-4"></i>
+              <span>My Orders</span>
+            </a>
+            <a href="{% url 'messages_inbox' %}" class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+              <i class="fas fa-envelope w-4"></i>
+              <span>Messages</span>
+            </a>
+          </div>
+          <div class="border-t border-gray-200 py-2">
+            <a href="{% url 'logout' %}" 
+               onclick="return confirm('Are you sure you want to log out?')"
+               class="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+              <i class="fas fa-sign-out-alt w-4"></i>
+              <span>Logout</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>

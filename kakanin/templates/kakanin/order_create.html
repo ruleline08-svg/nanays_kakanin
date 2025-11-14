@@ -1,0 +1,155 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Place Order - Nanay's Kakanin</title>
+  <link rel="stylesheet" href="{% static 'kakanin/dist/output.css' %}">
+  <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+  <!-- Icon Libraries with CDN fallback -->
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+</head>
+<body class="bg-green-50">
+
+  <div class="min-h-screen py-8 px-4">
+    <div class="max-w-4xl mx-auto">
+      <!-- Header -->
+      <div class="mb-6">
+        <a href="{% url 'shop_user' %}" class="text-green-600 hover:text-green-700 inline-flex items-center gap-2 mb-4">
+          <i class="fas fa-arrow-left"></i>
+          <span>Back to Shop</span>
+        </a>
+        <h1 class="text-3xl font-bold text-gray-800">Place Your Order</h1>
+      </div>
+
+      <!-- Django Messages -->
+      {% if messages %}
+        <div class="mb-6">
+          {% for message in messages %}
+            <div class="mb-3 px-4 py-3 rounded 
+                        {% if message.tags == 'success' %} bg-green-100 text-green-800 
+                        {% elif message.tags == 'error' %} bg-red-100 text-red-800 
+                        {% else %} bg-blue-100 text-blue-800 {% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Order Form -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="md:flex">
+          <!-- Product Image -->
+          <div class="md:w-1/3 bg-gray-100">
+            {% if product.image %}
+              <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-64 md:h-full object-cover">
+            {% else %}
+              <div class="w-full h-64 md:h-full flex items-center justify-center bg-gray-200">
+                <i class="fas fa-image text-gray-400 text-5xl"></i>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Product Details & Order Form -->
+          <div class="md:w-2/3 p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ product.name }}</h2>
+            <p class="text-3xl font-bold text-green-600 mb-4">₱{{ product.price }}</p>
+            
+            {% if product.description %}
+              <p class="text-gray-600 mb-4">{{ product.description }}</p>
+            {% endif %}
+
+            <div class="mb-4 p-3 bg-gray-50 rounded">
+              <p class="text-sm text-gray-600"><strong>Available Stock:</strong> {{ product.stock }} pieces</p>
+              <p class="text-sm text-gray-600"><strong>Availability:</strong> {{ product.get_availability_display }}</p>
+            </div>
+
+            <form method="POST" class="space-y-4">
+              {% csrf_token %}
+              
+              <!-- Quantity -->
+              <div>
+                <label for="quantity" class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                <div class="flex items-center gap-3">
+                  <button type="button" id="qtyMinus" class="w-10 h-10 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-minus text-gray-600"></i>
+                  </button>
+                  <input type="number" name="quantity" id="quantity" min="1" max="{{ product.stock }}" value="1" 
+                         class="w-24 text-center border border-gray-300 rounded-lg py-2 text-lg font-semibold focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                  <button type="button" id="qtyPlus" class="w-10 h-10 rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-plus text-gray-600"></i>
+                  </button>
+                  <span class="text-gray-600">/ {{ product.stock }} available</span>
+                </div>
+              </div>
+
+              <!-- Total Price -->
+              <div class="p-4 bg-green-50 rounded-lg">
+                <div class="flex justify-between items-center">
+                  <span class="text-lg font-semibold text-gray-700">Total:</span>
+                  <span class="text-2xl font-bold text-green-600">₱<span id="totalPrice">{{ product.price }}</span></span>
+                </div>
+              </div>
+
+              <!-- Notes -->
+              <div>
+                <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Special Requests (Optional)</label>
+                <textarea name="notes" id="notes" rows="3" 
+                          class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          placeholder="Any special requests or instructions for your order..."></textarea>
+              </div>
+
+              <!-- Submit Buttons -->
+              <div class="flex gap-3 pt-4">
+                <a href="{% url 'shop_user' %}" 
+                   class="flex-1 text-center px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-semibold">
+                  Cancel
+                </a>
+                <button type="submit" 
+                        class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                  <i class="fas fa-check mr-2"></i>Place Order
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const qtyInput = document.getElementById('quantity');
+    const qtyMinus = document.getElementById('qtyMinus');
+    const qtyPlus = document.getElementById('qtyPlus');
+    const totalPrice = document.getElementById('totalPrice');
+    const unitPrice = {{ product.price }};
+    const maxStock = {{ product.stock }};
+
+    function updateTotal() {
+      const qty = parseInt(qtyInput.value) || 1;
+      totalPrice.textContent = (unitPrice * qty).toFixed(2);
+    }
+
+    qtyMinus.addEventListener('click', () => {
+      let val = parseInt(qtyInput.value) || 1;
+      if (val > 1) {
+        qtyInput.value = val - 1;
+        updateTotal();
+      }
+    });
+
+    qtyPlus.addEventListener('click', () => {
+      let val = parseInt(qtyInput.value) || 1;
+      if (val < maxStock) {
+        qtyInput.value = val + 1;
+        updateTotal();
+      }
+    });
+
+    qtyInput.addEventListener('input', updateTotal);
+  </script>
+
+</body>
+</html>

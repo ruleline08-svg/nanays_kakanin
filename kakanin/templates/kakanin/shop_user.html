@@ -1,0 +1,1147 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shop - Nanay's Kakanin</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+  <!-- Bootstrap Icons CDN Fallback -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Smooth transitions */
+    .transition-all {
+      transition: all 300ms ease-in-out;
+    }
+    
+    /* Mobile: Sidebar hidden by default, slides in from left */
+    #sidebar {
+      transform: translateX(-100%);
+    }
+    
+    #sidebar.show {
+      transform: translateX(0);
+    }
+    
+    /* Desktop: sidebar always visible in full width */
+    @media (min-width: 1024px) {
+      #sidebar {
+        transform: translateX(0);
+        width: 280px;
+      }
+      
+      /* When collapsed on desktop, show icon-only */
+      #sidebar.collapsed {
+        width: 80px;
+      }
+      
+      /* Hide text labels when collapsed */
+      #sidebar.collapsed .sidebar-text {
+        display: none;
+      }
+      
+      /* Center icons when collapsed */
+      #sidebar.collapsed nav a {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+      }
+    }
+    
+    /* Dropdown animations */
+    .dropdown-menu {
+      display: none;
+    }
+    
+    .dropdown-menu.show {
+      display: block;
+    }
+  </style>
+</head>
+
+<body class="bg-green-50 h-full">
+
+  <!-- Top Navbar -->
+  <header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+    <div class="flex items-center gap-4">
+      <!-- Logo -->
+      <a href="{% url 'index_user' %}" class="flex items-center gap-3">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+        <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+      </a>
+      
+      <!-- Hamburger Toggle -->
+      <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+      </button>
+    </div>
+    
+    <!-- Search Bar (Desktop) -->
+    <div class="hidden md:flex flex-1 max-w-xl mx-8">
+      <div class="relative w-full">
+        <input type="text" id="searchInput" placeholder="Search product..." 
+               class="w-full px-4 py-2 pl-10 pr-20 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm">
+        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          <button id="clearSearch" class="text-gray-400 hover:text-gray-600 p-1 hidden">
+            <i class="fas fa-times text-sm"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right Icons -->
+    <div class="ml-auto flex items-center gap-2">
+      <!-- Search Icon (Mobile) -->
+      <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
+        <i class="fa-solid fa-search text-xl text-gray-600"></i>
+      </button>
+      
+      <!-- Notifications -->
+      <div class="relative">
+        <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+          <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+          {% if unread_notifications_count > 0 %}
+            <span class="absolute top-1 right-1 w-5 h-5 bg-primary text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ unread_notifications_count }}</span>
+          {% endif %}
+        </button>
+        
+        <!-- Notifications Dropdown -->
+        <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <p class="text-sm font-semibold text-gray-700">{% if unread_notifications_count > 0 %}You have {{ unread_notifications_count }} new notification{{ unread_notifications_count|pluralize }}{% else %}No new notifications{% endif %}</p>
+          </div>
+          <div class="max-h-64 overflow-y-auto">
+            {% if recent_notifications %}
+              {% for notification in recent_notifications %}
+                <a href="{% url 'user_notifications' %}" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                  <div class="text-xl mt-1 {% if 'Reservation' in notification.message %}text-green-600{% elif 'Order' in notification.message %}text-blue-600{% else %}text-yellow-500{% endif %}">
+                    {% if 'Reservation' in notification.message %}
+                      <i class="fas fa-calendar-check"></i>
+                    {% elif 'Order' in notification.message %}
+                      <i class="fas fa-shopping-cart"></i>
+                    {% else %}
+                      <i class="fas fa-info-circle"></i>
+                    {% endif %}
+                  </div>
+                  <div class="flex-1">
+                    <h4 class="text-sm font-semibold text-gray-800">{{ notification.get_type_display }}</h4>
+                    <p class="text-xs text-gray-500">{{ notification.message|truncatewords:10 }}</p>
+                    <p class="text-xs text-gray-400 mt-1"><i class="fas fa-clock"></i> {{ notification.created_at|timesince }} ago</p>
+                  </div>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="px-4 py-6 text-center text-gray-500 text-sm">
+                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                <p>No new notifications</p>
+              </div>
+            {% endif %}
+          </div>
+          <div class="px-4 py-2 border-t border-gray-200">
+            <a href="{% url 'user_notifications' %}" class="text-sm text-primary hover:underline">Show all notifications</a>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Profile -->
+      <div class="relative">
+        <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+          {% if user.userprofile.profile_picture %}
+          <img src="{{ user.userprofile.profile_picture.url }}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% else %}
+          <img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">
+          {% endif %}
+          <span class="hidden md:block text-sm font-medium text-secondary">{{ user.get_full_name|default:user.username }}</span>
+          <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+        </button>
+        
+        <!-- Profile Dropdown -->
+        <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200">
+            <h6 class="text-sm font-semibold text-gray-800">{{ user.get_full_name|default:user.username }}</h6>
+            <span class="text-xs text-gray-500">{{ user.email }}</span>
+          </div>
+          <div class="px-4 py-2">
+            <div class="flex items-start gap-3 py-2">
+              <i class="fas fa-envelope text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Email</p>
+                <p class="text-sm text-gray-700">{{ user.email }}</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 py-2">
+              <i class="fas fa-phone text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Phone</p>
+                <p class="text-sm text-gray-700">{{ user.userprofile.phone|default:'Not provided' }}</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3 py-2">
+              <i class="fas fa-map-marker-alt text-lg text-gray-600 mt-0.5"></i>
+              <div class="flex-1">
+                <p class="text-xs text-gray-500">Address</p>
+                <p class="text-sm text-gray-700">{{ user.userprofile.get_full_address|default:'Not provided' }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors">
+            <i class="fas fa-sign-out-alt text-lg text-red-600"></i>
+            <span class="text-sm text-red-600">Sign Out</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-[280px] bg-white shadow-lg z-40 flex flex-col transition-all">
+    <!-- Navigation -->
+    <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+      <a href="{% url 'index_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-house text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Home</span>
+      </a>
+      <a href="{% url 'shop_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-green-700 bg-green-50 hover:bg-green-100 transition">
+        <i class="fa-solid fa-shop text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Shop</span>
+      </a>
+      <a href="{% url 'view_cart' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shopping-cart text-lg min-w-[20px]"></i>
+        <span class="sidebar-text flex items-center gap-2">
+          Cart
+          {% if total_cart_count > 0 %}
+            <span class="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-semibold">{{ total_cart_count }}</span>
+          {% endif %}
+        </span>
+      </a>
+      <a href="{% url 'about' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-circle-info text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">About</span>
+      </a>
+      <a href="{% url 'messages_inbox' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition relative">
+        <i class="fa-solid fa-message text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Messages</span>
+        {% if unread_messages_count > 0 %}
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">{{ unread_messages_count }}</span>
+        {% endif %}
+      </a>
+      <a href="{% url 'user_profile' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-user text-lg min-w-[20px]"></i>
+        <span class="sidebar-text">Profile</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Overlay for mobile -->
+  <div id="overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+
+  <!-- Main Content Area -->
+  <div id="mainContent" class="min-h-screen lg:ml-[280px] transition-all pt-20 overflow-x-hidden">
+    <!-- Content Header -->
+    <div class="bg-white p-4 md:p-6 border-b shadow-sm">
+      <div>
+        <h1 class="text-lg font-bold text-gray-800">Welcome, {{ user.first_name|default:user.username }}</h1>
+        <p class="text-gray-600 text-sm">Discover whatever you need easily</p>
+      </div>
+    </div>
+    <!-- Django Messages -->
+      {% if messages %}
+        <div class="mt-4">
+          {% for message in messages %}
+            <div class="mb-3 px-4 py-3 rounded 
+                        {% if message.tags == 'success' %} bg-green-100 text-green-800 
+                        {% elif message.tags == 'error' %} bg-red-100 text-red-800 
+                        {% else %} bg-blue-100 text-blue-800 {% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </header>
+
+    <!-- Products Grid -->
+    <main class="flex-1 p-4 md:p-6">
+      <!-- Category Filter Badges -->
+      <div class="mb-6 flex flex-wrap gap-3">
+        <button class="category-filter active flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all shadow-sm" 
+                data-category="all"
+                style="background-color: #16a34a; color: white;">
+          <i class="fas fa-list"></i>
+          <span>All Kakanin</span>
+        </button>
+        <button class="category-filter flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all shadow-sm" 
+                data-category="order_now"
+                style="background-color: #f3f4f6; color: #1f2937;">
+          <i class="fas fa-shopping-bag"></i>
+          <span>Order Now</span>
+        </button>
+        <button class="category-filter flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all shadow-sm" 
+                data-category="reservation"
+                style="background-color: #f3f4f6; color: #1f2937;">
+          <i class="fas fa-calendar"></i>
+          <span>For Reservation</span>
+        </button>
+      </div>
+
+      <div id="productsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+        {% for kakanin in kakanins %}
+        <div class="product-card bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow" 
+             data-name="{{ kakanin.name|lower }}" 
+             data-description="{{ kakanin.description|lower }}"
+             data-categories="{% if kakanin.categories and kakanin.categories|length > 0 %}{{ kakanin.categories|join:',' }}{% else %}{% if kakanin.allow_order_now %}order_now{% elif kakanin.allow_reservation %}reservation{% elif kakanin.is_available_now %}available_now{% endif %}{% endif %}"
+             data-id="{{ kakanin.id }}"
+             data-name-display="{{ kakanin.name }}"
+             data-price="{{ kakanin.price }}"
+             {% if kakanin.image %}
+             data-image="{{ kakanin.image.url }}"
+             {% else %}
+             data-image="{% static 'kakanin/img/logo1.png' %}"
+             {% endif %}>
+          <div class="relative">
+            {% if kakanin.image %}
+              <img src="{{ kakanin.image.url }}" alt="{{ kakanin.name }}" class="w-full h-72 object-cover">
+            {% else %}
+              <div class="w-full h-72 bg-gray-200 flex items-center justify-center">
+                <i class="fas fa-image text-gray-400 text-3xl"></i>
+              </div>
+            {% endif %}
+            <!-- Stock/Status Badge -->
+            {% if 'order_now' in kakanin.categories %}
+              {% if kakanin.stock > 0 %}
+                <span class="absolute top-2 right-2 bg-green-600 text-white text-xs px-3 py-1 rounded-full shadow-md">
+                  {{ kakanin.stock }} in stock
+                </span>
+              {% endif %}
+            {% elif 'reservation' in kakanin.categories %}
+              <span class="absolute top-2 right-2 bg-blue-600 text-white text-xs px-3 py-1 rounded-full shadow-md">
+                Min: {{ kakanin.min_order_quantity|default:10 }} pcs
+              </span>
+            {% endif %}
+          </div>
+          <div class="p-3">
+            <div class="mb-1">
+              <h3 class="font-semibold text-gray-800 text-sm">{{ kakanin.name }}</h3>
+            </div>
+            <p class="text-green-600 font-bold text-base">₱{{ kakanin.price }}</p>
+            {% if kakanin.description %}
+              <div class="mt-1">
+                <p class="text-gray-600 text-xs" id="desc-shop-{{ kakanin.id }}">
+                  <span class="description-short">{{ kakanin.description|truncatewords:10 }}</span>
+                  <span class="description-full hidden">{{ kakanin.description }}</span>
+                </p>
+                {% if kakanin.description|wordcount > 10 %}
+                  <button onclick="toggleShopDescription({{ kakanin.id }})" class="text-green-600 hover:text-green-700 text-xs font-medium mt-1">
+                    <span class="read-more-btn">...more</span>
+                    <span class="read-less-btn hidden">less</span>
+                  </button>
+                {% endif %}
+              </div>
+            {% endif %}
+            
+            <!-- Availability Info -->
+            <div class="mt-2">
+              <p class="text-xs text-gray-500">{{ kakanin.get_availability_display }}</p>
+            </div>
+
+            <!-- Order Status Display -->
+            <div class="mt-1.5 space-y-0.5">
+              {% if 'order_now' in kakanin.categories %}
+                {% if kakanin.can_order %}
+                  {% if kakanin.stock > 0 %}
+                    <p class="text-[10px] text-green-700 font-medium">
+                      <i class="fas fa-clock mr-0.5"></i>Available Now
+                    </p>
+                    <p class="text-[10px] text-gray-600">
+                      <i class="fas fa-store mr-0.5"></i>Min: {{ kakanin.min_order_quantity|default:1 }} pc
+                    </p>
+                  {% endif %}
+                {% else %}
+                  <p class="text-[10px] text-orange-600 font-medium">
+                    <i class="fas fa-ban mr-0.5"></i>Closed
+                  </p>
+                {% endif %}
+              {% elif 'reservation' in kakanin.categories %}
+                <p class="text-[10px] text-blue-700 font-medium">
+                  <i class="fas fa-calendar mr-0.5"></i>Min: {{ kakanin.min_order_quantity|default:10 }} pcs
+                </p>
+              {% endif %}
+            </div>
+            
+            <div class="mt-2 flex justify-between items-center">
+              <div class="text-[10px] text-gray-500">
+                / {{ kakanin.min_order_quantity|default:1 }} pcs
+              </div>
+              {% if 'order_now' in kakanin.categories %}
+                {% if kakanin.can_order and kakanin.stock > 0 %}
+                  <!-- Plus Button Only -->
+                  <button onclick="openProductModal({{ kakanin.id }}, '{{ kakanin.name|escapejs }}', {{ kakanin.price }}, {{ kakanin.stock }}, '{{ kakanin.image.url|default:''|escapejs }}', {{ kakanin.min_order_quantity|default:1 }}, {{ kakanin.delivery_min_quantity|default:10 }})" 
+                     class="w-10 h-10 bg-green-600 text-white rounded-full hover:bg-green-700 transition-all flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105"
+                     title="Order Now">
+                    <i class="fas fa-plus text-lg"></i>
+                  </button>
+                {% elif not kakanin.can_order %}
+                  <button disabled 
+                          class="w-10 h-10 bg-gray-300 text-gray-500 rounded-full cursor-not-allowed flex items-center justify-center">
+                    <i class="fas fa-ban text-base"></i>
+                  </button>
+                {% else %}
+                  <button disabled 
+                          class="w-10 h-10 bg-gray-300 text-gray-500 rounded-full cursor-not-allowed flex items-center justify-center">
+                    <i class="fas fa-times text-base"></i>
+                  </button>
+                {% endif %}
+              {% elif 'reservation' in kakanin.categories %}
+                <button onclick="openReservationModal({{ kakanin.id }}, '{{ kakanin.name }}', {{ kakanin.price }}, {{ kakanin.min_order_quantity|default:1 }})" 
+                        class="w-10 h-10 bg-green-600 text-white rounded-full hover:bg-green-700 transition-all flex items-center justify-center shadow-md hover:shadow-lg transform hover:scale-105">
+                  <i class="fas fa-calendar-plus text-lg"></i>
+                </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full text-center py-12">
+          <i class="fas fa-store text-4xl text-gray-300 mb-4"></i>
+          <p class="text-gray-500">No products available</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Product Detail Modal (Enhanced) -->
+      <div id="productModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end md:items-center justify-center">
+        <div class="bg-white w-full md:max-w-2xl md:rounded-2xl rounded-t-3xl shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto">
+          <!-- Modal Header -->
+          <div class="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
+            <h3 class="text-lg font-bold text-gray-800">Product Details</h3>
+            <button onclick="closeProductModal()" class="text-gray-500 hover:text-gray-700">
+              <i class="fas fa-times text-2xl"></i>
+            </button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="p-6">
+            <!-- Product Image -->
+            <div class="mb-6">
+              <img id="modalImage" src="" alt="Product" class="w-full h-64 object-cover rounded-lg">
+            </div>
+
+            <!-- Product Info -->
+            <div class="mb-6">
+              <h2 id="modalName" class="text-2xl font-bold text-gray-800 mb-2"></h2>
+              <p id="modalPrice" class="text-3xl font-bold text-green-600 mb-4"></p>
+              <p id="modalStock" class="text-sm text-gray-600 mb-2"></p>
+              <div class="flex gap-2 text-xs text-gray-600 mb-3">
+                <span id="modalPickupMin"><i class="fas fa-store mr-1"></i>Pickup: <span class="font-semibold"></span></span>
+                <span>•</span>
+                <span id="modalDeliveryMin"><i class="fas fa-truck mr-1"></i>Delivery: <span class="font-semibold"></span></span>
+              </div>
+              <!-- Shipping Info -->
+              <div id="shippingInfo" class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                <div class="flex items-start gap-2">
+                  <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                  <div>
+                    <p class="text-blue-800 font-medium">Shipping Information:</p>
+                    <p class="text-blue-700 text-xs mt-1" id="shippingText"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quantity Selector -->
+            <div class="mb-6">
+              <label class="block text-sm font-semibold text-gray-700 mb-3">Quantity</label>
+              <div class="flex items-center gap-4">
+                <button onclick="decreaseQuantity()" class="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-green-500 hover:text-green-500 transition-colors">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <input type="number" id="quantityInput" value="1" min="1" 
+                       class="w-20 text-center border-2 border-gray-300 rounded-lg py-2 font-semibold text-lg focus:border-green-500 focus:outline-none"
+                       onchange="updateTotal()">
+                <button onclick="increaseQuantity()" class="w-10 h-10 border-2 border-gray-300 rounded-lg flex items-center justify-center hover:border-green-500 hover:text-green-500 transition-colors">
+                  <i class="fas fa-plus"></i>
+                </button>
+                <span id="maxStock" class="text-sm text-gray-500"></span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="sticky bottom-0 bg-white border-t px-6 py-4 z-10">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <span class="text-gray-600 text-sm">Total:</span>
+                <div id="shippingCost" class="text-xs text-gray-500"></div>
+              </div>
+              <span id="totalPrice" class="text-2xl font-bold text-green-600"></span>
+            </div>
+            <div class="flex gap-3">
+              <!-- Add to Cart Button (Icon Only) -->
+              <button onclick="addToCart()" 
+                      class="w-14 h-14 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center shadow-md"
+                      title="Add to Cart">
+                <i class="fas fa-shopping-cart text-xl"></i>
+              </button>
+              <!-- Buy Now Button -->
+              <button onclick="buyNow()" 
+                      class="flex-1 bg-green-600 text-white py-4 rounded-lg hover:bg-green-700 transition-colors font-bold text-lg">
+                Buy Now
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Results Message -->
+      <div id="noResults" class="hidden text-center py-12">
+        <i class="fas fa-search text-4xl text-gray-300 mb-4"></i>
+        <p class="text-gray-500 mb-4">No products found matching your search</p>
+        <button id="clearSearchBtn" class="bg-green-500 text-white px-6 py-2 rounded-full hover:bg-green-600 transition-colors">
+          Clear Search
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const mainContent = document.getElementById('mainContent');
+    
+    sidebarToggle.addEventListener('click', function() {
+      // On mobile (< 1024px): slide sidebar in from left with overlay
+      if (window.innerWidth < 1024) {
+        sidebar.classList.toggle('show');
+        overlay.classList.toggle('hidden');
+      } else {
+        // On desktop (>= 1024px): collapse to icon-only mode
+        sidebar.classList.toggle('collapsed');
+        
+        // Adjust main content margin
+        if (sidebar.classList.contains('collapsed')) {
+          mainContent.style.marginLeft = '80px';
+        } else {
+          mainContent.style.marginLeft = '280px';
+        }
+      }
+    });
+    
+    // Close sidebar when clicking overlay (mobile only)
+    overlay.addEventListener('click', function() {
+      sidebar.classList.remove('show');
+      overlay.classList.add('hidden');
+    });
+    
+    // Dropdown toggle function
+    function toggleDropdown(id) {
+      const dropdown = document.getElementById(id);
+      const allDropdowns = document.querySelectorAll('.dropdown-menu');
+      
+      // Close all other dropdowns
+      allDropdowns.forEach(d => {
+        if (d.id !== id) {
+          d.classList.remove('show');
+        }
+      });
+      
+      // Toggle current dropdown
+      dropdown.classList.toggle('show');
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.relative')) {
+        document.querySelectorAll('.dropdown-menu').forEach(d => {
+          d.classList.remove('show');
+        });
+      }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+      if (window.innerWidth >= 1024) {
+        // On desktop: remove mobile classes, restore proper state
+        overlay.classList.add('hidden');
+        sidebar.classList.remove('show');
+        
+        // Restore proper margin based on collapsed state
+        if (sidebar.classList.contains('collapsed')) {
+          mainContent.style.marginLeft = '80px';
+        } else {
+          mainContent.style.marginLeft = '280px';
+        }
+      } else {
+        // On mobile: remove desktop classes
+        sidebar.classList.remove('collapsed');
+        mainContent.style.marginLeft = '0';
+      }
+    });
+
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const clearSearch = document.getElementById('clearSearch');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const productCards = document.querySelectorAll('.product-card');
+    const noResults = document.getElementById('noResults');
+    const productsGrid = document.getElementById('productsGrid');
+
+    function performSearch() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      let visibleCards = 0;
+
+      // Show/hide clear button
+      if (searchTerm) {
+        clearSearch.classList.remove('hidden');
+      } else {
+        clearSearch.classList.add('hidden');
+      }
+
+      productCards.forEach(card => {
+        const name = card.getAttribute('data-name');
+        const description = card.getAttribute('data-description');
+        
+        if (searchTerm === '' || name.includes(searchTerm) || description.includes(searchTerm)) {
+          card.style.display = 'block';
+          visibleCards++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      // Show/hide no results message
+      if (visibleCards === 0 && searchTerm !== '') {
+        noResults.classList.remove('hidden');
+        productsGrid.classList.add('hidden');
+      } else {
+        noResults.classList.add('hidden');
+        productsGrid.classList.remove('hidden');
+      }
+    }
+
+    // Real-time search as user types
+    searchInput.addEventListener('input', performSearch);
+
+    // Clear search functionality
+    clearSearch.addEventListener('click', function() {
+      searchInput.value = '';
+      performSearch();
+      searchInput.focus();
+    });
+
+    clearSearchBtn.addEventListener('click', function() {
+      searchInput.value = '';
+      performSearch();
+      searchInput.focus();
+    });
+
+    // Category filter functionality
+    const categoryFilters = document.querySelectorAll('.category-filter');
+    let activeCategory = 'all';
+
+    categoryFilters.forEach(filter => {
+      filter.addEventListener('click', function() {
+        // Update active state
+        categoryFilters.forEach(f => {
+          f.classList.remove('active');
+          f.style.backgroundColor = '#f3f4f6';
+          f.style.color = '#1f2937';
+        });
+        
+        this.classList.add('active');
+        const category = this.getAttribute('data-category');
+        activeCategory = category;
+        
+        // Style active button
+        if (category === 'all') {
+          this.style.backgroundColor = '#16a34a';
+          this.style.color = 'white';
+        } else if (category === 'order_now') {
+          this.style.backgroundColor = '#1f2937';
+          this.style.color = 'white';
+        } else if (category === 'reservation') {
+          this.style.backgroundColor = '#3b82f6';
+          this.style.color = 'white';
+        }
+        
+        // Filter products
+        filterProducts();
+      });
+    });
+
+    function filterProducts() {
+      let visibleCards = 0;
+      const searchTerm = searchInput.value.toLowerCase().trim();
+
+      productCards.forEach(card => {
+        const name = card.getAttribute('data-name');
+        const description = card.getAttribute('data-description');
+        const categories = card.getAttribute('data-categories') || '';
+        
+        // Check search match
+        const matchesSearch = searchTerm === '' || name.includes(searchTerm) || description.includes(searchTerm);
+        
+        // Check category match
+        let matchesCategory = false;
+        if (activeCategory === 'all') {
+          matchesCategory = true;
+        } else {
+          matchesCategory = categories.includes(activeCategory);
+        }
+        
+        if (matchesSearch && matchesCategory) {
+          card.style.display = 'block';
+          visibleCards++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      // Show/hide no results message
+      if (visibleCards === 0) {
+        noResults.classList.remove('hidden');
+        productsGrid.classList.add('hidden');
+      } else {
+        noResults.classList.add('hidden');
+        productsGrid.classList.remove('hidden');
+      }
+    }
+
+    // Update search to work with category filter
+    searchInput.addEventListener('input', filterProducts);
+
+    // Check URL parameters and activate filter on page load
+    window.addEventListener('DOMContentLoaded', function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const filterParam = urlParams.get('filter');
+      
+      if (filterParam === 'reservation') {
+        // Find and click the reservation filter button
+        const reservationBtn = document.querySelector('[data-category="reservation"]');
+        if (reservationBtn) {
+          reservationBtn.click();
+        }
+      }
+    });
+
+    // Auto-refresh page when order time window closes
+    function checkOrderTimeWindow() {
+      const now = new Date();
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      
+      // Check if any order products exist
+      const orderProducts = document.querySelectorAll('[data-categories*="order_now"]');
+      if (orderProducts.length > 0) {
+        // Refresh page every minute to update order status
+        setTimeout(() => {
+          location.reload();
+        }, 60000); // Refresh every 60 seconds
+      }
+    }
+    
+    // Start checking
+    checkOrderTimeWindow();
+
+    // Product Modal Functions
+    let currentProduct = {};
+
+    function openProductModal(id, name, price, stock, imageUrl, pickupMin, deliveryMin) {
+      currentProduct = { id, name, price, stock, imageUrl, pickupMin, deliveryMin };
+      
+      // Set product details
+      document.getElementById('modalName').textContent = name;
+      document.getElementById('modalPrice').textContent = '₱' + parseFloat(price).toFixed(2);
+      document.getElementById('modalStock').textContent = stock + ' pieces available';
+      document.getElementById('modalImage').src = imageUrl || '/static/kakanin/img/placeholder.png';
+      document.getElementById('maxStock').textContent = 'Max: ' + stock;
+      
+      // Set min quantities
+      document.getElementById('modalPickupMin').querySelector('.font-semibold').textContent = pickupMin + ' pc min';
+      document.getElementById('modalDeliveryMin').querySelector('.font-semibold').textContent = deliveryMin + ' pcs min';
+      
+      // Reset quantity (use pickup minimum as default)
+      document.getElementById('quantityInput').value = pickupMin;
+      document.getElementById('quantityInput').min = pickupMin;
+      
+      // Show modal
+      document.getElementById('productModal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      
+      updateTotal();
+    }
+
+    function closeProductModal() {
+      document.getElementById('productModal').classList.add('hidden');
+      document.body.style.overflow = 'auto';
+    }
+
+    function increaseQuantity() {
+      const input = document.getElementById('quantityInput');
+      const currentQty = parseInt(input.value);
+      const maxStock = currentProduct.stock;
+      
+      if (currentQty < maxStock) {
+        input.value = currentQty + 1;
+        updateTotal();
+      }
+    }
+
+    function decreaseQuantity() {
+      const input = document.getElementById('quantityInput');
+      const currentQty = parseInt(input.value);
+      const minQty = currentProduct.pickupMin; // Use pickup minimum as default
+      
+      if (currentQty > minQty) {
+        input.value = currentQty - 1;
+        updateTotal();
+      }
+    }
+
+    function updateTotal() {
+      const quantity = parseInt(document.getElementById('quantityInput').value);
+      const total = currentProduct.price * quantity;
+      const deliveryMin = currentProduct.deliveryMin;
+      const freeShippingThreshold = deliveryMin + 10;
+      
+      // Update shipping info
+      const shippingText = document.getElementById('shippingText');
+      const shippingCost = document.getElementById('shippingCost');
+      
+      if (quantity >= freeShippingThreshold) {
+        shippingText.innerHTML = `<i class="fas fa-check-circle text-green-600"></i> <strong>FREE SHIPPING!</strong> You ordered ${quantity} pcs (${freeShippingThreshold}+ pcs qualifies for free delivery)`;
+        shippingCost.textContent = 'Shipping: FREE';
+        shippingCost.classList.remove('text-gray-500');
+        shippingCost.classList.add('text-green-600', 'font-semibold');
+      } else if (quantity >= deliveryMin) {
+        const moreNeeded = freeShippingThreshold - quantity;
+        shippingText.innerHTML = `Regular shipping ₱50. Order ${moreNeeded} more pcs for <strong>FREE SHIPPING!</strong>`;
+        shippingCost.textContent = 'Shipping: ₱50.00';
+        shippingCost.classList.remove('text-green-600', 'font-semibold');
+        shippingCost.classList.add('text-gray-500');
+      } else {
+        const moreNeeded = deliveryMin - quantity;
+        shippingText.innerHTML = `Pickup only. Add ${moreNeeded} more pcs to qualify for delivery (min: ${deliveryMin} pcs)`;
+        shippingCost.textContent = 'Pickup only';
+        shippingCost.classList.remove('text-green-600', 'font-semibold');
+        shippingCost.classList.add('text-gray-500');
+      }
+      
+      document.getElementById('totalPrice').textContent = '₱' + total.toFixed(2);
+    }
+
+    function addToCart() {
+      const quantity = parseInt(document.getElementById('quantityInput').value);
+      
+      // Validate quantity (use pickup minimum as default for validation)
+      const minQty = currentProduct.pickupMin;
+      if (quantity < minQty) {
+        alert('Minimum quantity is ' + minQty + ' pieces');
+        return;
+      }
+      
+      if (quantity > currentProduct.stock) {
+        alert('Only ' + currentProduct.stock + ' pieces available');
+        return;
+      }
+      
+      // Create a form to submit with POST data
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/cart/add/' + currentProduct.id + '/';
+      
+      // Add CSRF token
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'csrfmiddlewaretoken';
+      csrfInput.value = '{{ csrf_token }}';
+      form.appendChild(csrfInput);
+      
+      // Add quantity
+      const qtyInput = document.createElement('input');
+      qtyInput.type = 'hidden';
+      qtyInput.name = 'quantity';
+      qtyInput.value = quantity;
+      form.appendChild(qtyInput);
+      
+      // Don't add order type - will be selected during checkout/payment
+      
+      document.body.appendChild(form);
+      form.submit();
+    }
+    
+    function buyNow() {
+      const quantity = parseInt(document.getElementById('quantityInput').value);
+      
+      // Validate quantity
+      const minQty = currentProduct.pickupMin;
+      if (quantity < minQty) {
+        alert('Minimum quantity is ' + minQty + ' pieces');
+        return;
+      }
+      
+      if (quantity > currentProduct.stock) {
+        alert('Only ' + currentProduct.stock + ' pieces available');
+        return;
+      }
+      
+      // Add to cart first, then redirect to checkout
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '/cart/add/' + currentProduct.id + '/';
+      
+      // Add CSRF token
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = 'csrfmiddlewaretoken';
+      csrfInput.value = '{{ csrf_token }}';
+      form.appendChild(csrfInput);
+      
+      // Add quantity
+      const qtyInput = document.createElement('input');
+      qtyInput.type = 'hidden';
+      qtyInput.name = 'quantity';
+      qtyInput.value = quantity;
+      form.appendChild(qtyInput);
+      
+      // Add buy_now flag to redirect to checkout
+      const buyNowInput = document.createElement('input');
+      buyNowInput.type = 'hidden';
+      buyNowInput.name = 'buy_now';
+      buyNowInput.value = 'true';
+      form.appendChild(buyNowInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('productModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeProductModal();
+      }
+    });
+
+    // Update quantity input on change
+    document.getElementById('quantityInput').addEventListener('input', function() {
+      const minQty = currentProduct.pickupMin;
+      if (parseInt(this.value) < minQty) {
+        this.value = minQty;
+      }
+      if (parseInt(this.value) > currentProduct.stock) {
+        this.value = currentProduct.stock;
+      }
+      updateTotal();
+    });
+  </script>
+
+  <!-- Reservation Modal -->
+  <div id="reservationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-md w-full p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold text-gray-800" id="modalProductName">Add to Reservation Cart</h3>
+        <button onclick="closeReservationModal()" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <form method="post" id="reservationForm">
+        {% csrf_token %}
+        <input type="hidden" name="product_id" id="modalProductId">
+        
+        <div class="mb-4">
+          <label class="block text-gray-700 font-medium mb-2">Quantity *</label>
+          <input type="number" name="quantity" id="reservationQuantity" value="1" min="1" required
+                 class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500">
+          <p class="text-sm text-gray-500 mt-1" id="reservationMinText">Minimum: 1 piece</p>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-gray-700 font-medium mb-2">Reservation Date *</label>
+          <input type="date" name="reservation_date" required
+                 class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500">
+          <p class="text-sm text-gray-500 mt-1">Reserve at least 3 days in advance</p>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-gray-700 font-medium mb-2">Reservation Time *</label>
+          <input type="time" name="reservation_time" value="09:00" required
+                 class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500">
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-gray-700 font-medium mb-2">Notes (Optional)</label>
+          <textarea name="notes" rows="2" placeholder="Special requests or instructions..."
+                    class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500"></textarea>
+        </div>
+
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+          <p class="text-sm text-green-800">
+            <i class="fas fa-info-circle"></i> Item will be added to your reservation cart
+          </p>
+        </div>
+
+        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg transition">
+          <i class="fas fa-cart-plus"></i> Add to Cart
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Cart Selection Modal -->
+  <div id="cartModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl">
+      <div class="text-center mb-6">
+        <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+          <i class="fas fa-shopping-cart text-3xl text-green-600"></i>
+        </div>
+        <h3 class="text-2xl font-bold text-gray-800 mb-2">Choose Your Cart</h3>
+        <p class="text-gray-600">Select which cart you want to view</p>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Order Cart Button -->
+        <a href="{% url 'view_cart' %}" class="block w-full bg-green-600 hover:bg-green-700 text-white p-5 rounded-xl font-semibold transition-all shadow-lg">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-shopping-bag text-2xl"></i>
+              <div class="text-left">
+                <div class="text-lg font-bold">Order Cart</div>
+                <div class="text-sm" style="opacity: 0.9;">Immediate purchase</div>
+              </div>
+            </div>
+            <i class="fas fa-arrow-right text-xl"></i>
+          </div>
+        </a>
+
+        <!-- Reservation Cart Button -->
+        <a href="{% url 'view_cart' %}" class="block w-full bg-green-600 hover:bg-green-700 text-white p-5 rounded-xl font-semibold transition-all shadow-lg">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <i class="fas fa-calendar-check text-2xl"></i>
+              <div class="text-left">
+                <div class="text-lg font-bold">Reservation Cart</div>
+                <div class="text-sm" style="opacity: 0.9;">Advance booking</div>
+              </div>
+            </div>
+            <i class="fas fa-arrow-right text-xl"></i>
+          </div>
+        </a>
+      </div>
+
+      <button onclick="closeCartModal()" class="mt-6 w-full py-3 text-gray-600 hover:text-gray-800 font-medium transition">
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Cart Modal Functions
+    function openCartModal() {
+      document.getElementById('cartModal').classList.remove('hidden');
+    }
+
+    function closeCartModal() {
+      document.getElementById('cartModal').classList.add('hidden');
+    }
+
+    // Close cart modal when clicking outside
+    document.getElementById('cartModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeCartModal();
+      }
+    });
+
+    // Reservation Modal Functions
+    function openReservationModal(productId, productName, price, minQuantity) {
+      minQuantity = minQuantity || 1; // Default to 1 if not provided
+      
+      document.getElementById('modalProductId').value = productId;
+      document.getElementById('modalProductName').textContent = productName;
+      document.getElementById('reservationForm').action = `/reservation/cart/add/${productId}/`;
+      
+      // Set minimum quantity
+      const quantityInput = document.getElementById('reservationQuantity');
+      quantityInput.value = minQuantity;
+      quantityInput.min = minQuantity;
+      
+      // Update minimum text
+      const minText = document.getElementById('reservationMinText');
+      const pieceText = minQuantity === 1 ? 'piece' : 'pieces';
+      minText.textContent = `Minimum: ${minQuantity} ${pieceText}`;
+      
+      document.getElementById('reservationModal').classList.remove('hidden');
+      
+      // Set minimum date (3 days from now)
+      const today = new Date();
+      today.setDate(today.getDate() + 3);
+      const minDate = today.toISOString().split('T')[0];
+      document.querySelector('#reservationModal input[name="reservation_date"]').setAttribute('min', minDate);
+    }
+
+    function closeReservationModal() {
+      document.getElementById('reservationModal').classList.add('hidden');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('reservationModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeReservationModal();
+      }
+    });
+
+    // Toggle description Read More/Less for shop cards
+    function toggleShopDescription(productId) {
+      const descElement = document.getElementById('desc-shop-' + productId);
+      const shortText = descElement.querySelector('.description-short');
+      const fullText = descElement.querySelector('.description-full');
+      const button = descElement.parentElement.querySelector('button');
+      const readMoreBtn = button.querySelector('.read-more-btn');
+      const readLessBtn = button.querySelector('.read-less-btn');
+      
+      if (shortText.classList.contains('hidden')) {
+        // Show short, hide full
+        shortText.classList.remove('hidden');
+        fullText.classList.add('hidden');
+        readMoreBtn.classList.remove('hidden');
+        readLessBtn.classList.add('hidden');
+      } else {
+        // Show full, hide short
+        shortText.classList.add('hidden');
+        fullText.classList.remove('hidden');
+        readMoreBtn.classList.add('hidden');
+        readLessBtn.classList.remove('hidden');
+      }
+    }
+  </script>
+
+</body>
+</html>

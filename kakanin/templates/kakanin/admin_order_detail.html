@@ -1,0 +1,352 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order #{{ order.id }} - Admin</title>
+    <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+    <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+    <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+    
+    <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#16a34a',
+            secondary: '#15803d',
+          }
+        }
+      }
+    }
+    </script>
+    <style>
+      .transition-all { transition: all 300ms ease-in-out; }
+      
+      /* Sidebar styles */
+      #sidebar { 
+        transform: translateX(-100%); 
+      }
+      #sidebar.show { 
+        transform: translateX(0); 
+      }
+      
+      @media (min-width: 1024px) {
+        #sidebar { 
+          transform: translateX(0); 
+          width: 280px; 
+        }
+        #sidebar.collapsed { 
+          width: 80px; 
+        }
+        #sidebar.collapsed .sidebar-text { 
+          display: none; 
+        }
+        #sidebar.collapsed nav a { 
+          justify-content: center; 
+          padding-left: 0; 
+          padding-right: 0; 
+        }
+        #mainContent {
+          margin-left: 280px;
+        }
+        #mainContent.expanded {
+          margin-left: 80px;
+        }
+      }
+      
+      
+      /* Order page specific styles */
+      .order-card {
+          background: white;
+          border-radius: 15px;
+          box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+          padding: 30px;
+          margin-top: 30px;
+      }
+      .status-badge {
+          padding: 10px 20px;
+          border-radius: 9999px;
+          font-weight: 600;
+          font-size: 0.875rem;
+      }
+      .status-pending { background-color: #fef3c7; color: #92400e; }
+      .status-pending_confirmation { background-color: #dbeafe; color: #1e40af; }
+      .status-confirmed { background-color: #d1fae5; color: #065f46; }
+      .status-ready_for_pickup { background-color: #e0e7ff; color: #3730a3; }
+      .status-out_for_delivery { background-color: #e9d5ff; color: #6b21a8; }
+      .status-completed { background-color: #bbf7d0; color: #14532d; }
+      .status-rejected, .status-cancelled { background-color: #fee2e2; color: #991b1b; }
+      .order-item {
+          border-bottom: 1px solid #eee;
+          padding: 15px 0;
+      }
+      .order-item:last-child {
+          border-bottom: none;
+      }
+      .payment-proof {
+          max-width: 400px;
+          border-radius: 10px;
+          box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+          cursor: pointer;
+      }
+      .info-label {
+          font-weight: 600;
+          color: var(--primary-color);
+      }
+      .section-card {
+          background-color: #f8f9fa;
+          border-radius: 10px;
+          padding: 20px;
+          margin-bottom: 20px;
+      }
+    </style>
+</head>
+<body class="bg-green-50 h-full overflow-x-hidden">
+
+  {% include 'kakanin/includes/admin_navbar.html' %}
+    
+    <!-- Main Content -->
+    <main id="mainContent" class="pt-20 transition-all">
+        <div class="p-4 lg:p-8">
+            <div class="max-w-6xl mx-auto">
+                <div class="bg-white rounded-2xl shadow-lg p-6 lg:p-8">
+                    <!-- Header -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-gray-200">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800">
+                                <i class="fas fa-receipt text-primary"></i> Order #{{ order.id }}
+                            </h2>
+                            <p class="text-gray-600 text-sm mt-1">View and manage order details</p>
+                        </div>
+                        <span class="status-badge status-{{ order.status }}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </div>
+
+                    <!-- Messages -->
+                    {% if messages %}
+                    <div class="mb-4">
+                        {% for message in messages %}
+                        <div class="p-4 rounded-lg mb-2 {% if message.tags == 'success' %}bg-green-100 text-green-700{% elif message.tags == 'error' %}bg-red-100 text-red-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Customer Information -->
+                    <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 mb-6 border border-gray-200">
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-user text-primary"></i> Customer Information
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                        <p><span class="info-label">Name:</span> {{ order.user.get_full_name|default:order.user.username }}</p>
+                        <p><span class="info-label">Username:</span> {{ order.user.username }}</p>
+                        <p><span class="info-label">Email:</span> {{ order.user.email }}</p>
+                            </div>
+                            <div>
+                                {% if order.user.userprofile %}
+                                <p><span class="info-label">Phone:</span> {{ order.user.userprofile.phone|default:"N/A" }}</p>
+                                <p><span class="info-label">Address:</span> {{ order.user.userprofile.address|default:"N/A" }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Information -->
+                    <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 mb-6 border border-gray-200">
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-info-circle text-primary"></i> Order Information
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                        <p><span class="info-label">Order Date:</span> {{ order.created_at|date:"F d, Y h:i A" }}</p>
+                        <p><span class="info-label">Last Updated:</span> {{ order.updated_at|date:"F d, Y h:i A" }}</p>
+                        <p><span class="info-label">Delivery Method:</span> 
+                            {% if order.delivery %}
+                                <i class="fas fa-truck text-primary"></i> Delivery
+                            {% else %}
+                                <i class="fas fa-store text-success"></i> Pickup
+                            {% endif %}
+                        </p>
+                                <p><span class="info-label">Payment Method:</span> {{ order.get_payment_method_display }}</p>
+                            </div>
+                            <div>
+                        <p><span class="info-label">Subtotal:</span> ₱{{ order.total_amount|floatformat:2 }}</p>
+                        {% if order.delivery %}
+                            <p><span class="info-label">Shipping Fee:</span> ₱{{ order.shipping_fee|floatformat:2 }}</p>
+                            <p><span class="info-label">Downpayment (50%):</span> ₱{{ order.downpayment_amount|floatformat:2 }}</p>
+                        {% endif %}
+                                <p><span class="info-label">Grand Total:</span> <strong class="text-green-600 font-bold">₱{{ order.get_grand_total|floatformat:2 }}</strong></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Items -->
+                    <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 mb-6 border border-gray-200">
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-list text-primary"></i> Order Items
+                        </h4>
+                        {% for item in order.items.all %}
+                        <div class="order-item">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h6 class="font-semibold mb-1">{{ item.product.name }}</h6>
+                                    <p class="text-gray-500 text-sm">₱{{ item.price|floatformat:2 }} × {{ item.quantity }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <strong class="text-lg">₱{{ item.subtotal|floatformat:2 }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Payment Information -->
+                    {% if order.delivery and order.gcash_reference %}
+                    <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 mb-6 border border-gray-200">
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-credit-card text-primary"></i> Payment Information
+                        </h4>
+                        <p><span class="info-label">GCash Reference:</span> <strong>{{ order.gcash_reference }}</strong></p>
+                        {% if order.payment_proof %}
+                        <p><span class="info-label">Payment Proof:</span></p>
+                        <img src="{{ order.payment_proof.url }}" alt="Payment Proof" class="payment-proof cursor-pointer" onclick="document.getElementById('proofModal').classList.remove('hidden')">
+                        {% else %}
+                        <p class="text-gray-500">No payment proof uploaded</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Notes -->
+                    {% if order.notes %}
+                    <div class="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 mb-6 border border-gray-200">
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-sticky-note text-primary"></i> Customer Notes
+                        </h4>
+                        <p class="mb-0">{{ order.notes }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Quick Actions -->
+                    <div class="bg-gradient-to-br from-green-50 to-white rounded-xl p-6 mb-6 border border-green-200">
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-bolt text-primary"></i> Quick Actions
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {% if order.status == 'pending_confirmation' %}
+                            <div>
+                                <form method="post" onsubmit="return confirm('Confirm this payment? Stock will be deducted.');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="confirm_payment">
+                                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition">
+                                        <i class="fas fa-check-circle"></i> Confirm Payment
+                                    </button>
+                                </form>
+                            </div>
+                            <div>
+                                <form method="post" onsubmit="return confirm('Reject this payment? This cannot be undone.');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="reject_payment">
+                                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg transition">
+                                        <i class="fas fa-times-circle"></i> Reject Payment
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                            
+                            {% if order.status == 'confirmed' %}
+                            <div>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="mark_ready_pickup">
+                                    <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition">
+                                        <i class="fas fa-store"></i> Mark Ready for Pickup
+                                    </button>
+                                </form>
+                            </div>
+                            <div>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="mark_out_delivery">
+                                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition">
+                                        <i class="fas fa-truck"></i> Mark Out for Delivery
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                            
+                            {% if order.status in 'ready_for_pickup,out_for_delivery' %}
+                            <div class="md:col-span-2">
+                                <form method="post" onsubmit="return confirm('Mark this order as completed?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="mark_completed">
+                                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-lg transition">
+                                        <i class="fas fa-check-double"></i> Mark Completed
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Manual Status Update -->
+                    <div class="bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 mb-6 border border-blue-200">
+                        <h4 class="text-xl font-bold mb-4 flex items-center gap-2">
+                            <i class="fas fa-edit text-blue-600"></i> Manual Status Update
+                        </h4>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_status">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <select name="status" class="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                                {% for status_code, status_label in status_choices %}
+                                <option value="{{ status_code }}" {% if order.status == status_code %}selected{% endif %}>
+                                    {{ status_label }}
+                                </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <button type="submit" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg transition">
+                                        <i class="fas fa-save"></i> Update Status
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <a href="{% url 'admin_orders' %}" class="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition shadow-md hover:shadow-lg">
+                            <i class="fas fa-arrow-left"></i> Back to Orders
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Payment Proof Modal -->
+    {% if order.payment_proof %}
+    <div id="proofModal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-auto shadow-2xl">
+            <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                <h5 class="text-2xl font-bold text-gray-800">Payment Proof - Order #{{ order.id }}</h5>
+                <button type="button" class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition" onclick="document.getElementById('proofModal').classList.add('hidden')">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            <div class="p-6 text-center bg-gray-50">
+                <img src="{{ order.payment_proof.url }}" alt="Payment Proof" class="max-w-full h-auto mx-auto rounded-lg shadow-lg">
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</body>
+</html>

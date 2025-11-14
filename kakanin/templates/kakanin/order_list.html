@@ -1,0 +1,311 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders - Nanay's Kakanin</title>
+  <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'kakanin/dist/output.css' %}">
+  <link rel="stylesheet" href="{% static 'kakanin/css/fontawesome/all.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'kakanin/css/bootstrap-icons/bootstrap-icons.css' %}">
+  <link rel="icon" href="{% static 'kakanin/img/logo.png' %}" type="image/png">
+  
+  <style>
+    .dropdown-menu { display: none; }
+    .dropdown-menu.show { display: block; }
+  </style>
+</head>
+<body class="bg-green-50 flex h-screen overflow-x-hidden">
+  <!-- Top Navbar -->
+  <header class="fixed top-0 left-0 right-0 h-20 bg-white shadow-md z-50 flex items-center px-4 lg:px-6">
+    <div class="flex items-center gap-4">
+      <a href="{% url 'index_user' %}" class="flex items-center gap-3">
+        <img src="{% static 'kakanin/img/logo.png' %}" alt="Logo" class="w-10 h-10 rounded-full">
+        <span class="hidden lg:block text-xl font-bold text-green-600">Nanay's Kakanin</span>
+      </a>
+      <button id="sidebarToggle" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <i class="fa-solid fa-bars text-2xl text-gray-700"></i>
+      </button>
+    </div>
+    <div class="hidden md:flex flex-1 max-w-xl mx-8">
+      <div class="relative w-full">
+        <input type="text" placeholder="Search" class="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-transparent text-sm">
+        <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+      </div>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <button class="md:hidden p-2 hover:bg-gray-100 rounded-lg"><i class="fa-solid fa-search text-xl text-gray-600"></i></button>
+      <div class="relative">
+        <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('notifDropdown')">
+          <i class="fa-solid fa-bell text-xl text-gray-600"></i>
+          {% if unread_notifications_count > 0 %}<span class="absolute top-1 right-1 w-5 h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ unread_notifications_count }}</span>{% endif %}
+        </button>
+        <div id="notifDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200"><p class="text-sm font-semibold text-gray-700">{% if unread_notifications_count > 0 %}You have {{ unread_notifications_count }} new notification{{ unread_notifications_count|pluralize }}{% else %}No new notifications{% endif %}</p></div>
+          <div class="max-h-64 overflow-y-auto"><a href="#" class="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"><i class="bi bi-exclamation-circle text-2xl text-yellow-500 mt-1"></i><div class="flex-1"><h4 class="text-sm font-semibold text-gray-800">Order Confirmed</h4><p class="text-xs text-gray-500">Your order has been confirmed</p><p class="text-xs text-gray-400 mt-1">30 min. ago</p></div></a></div>
+          <div class="px-4 py-2 border-t border-gray-200"><a href="{% url 'user_notifications' %}" class="text-sm text-green-600 hover:underline">Show all notifications</a></div>
+        </div>
+      </div>
+      <div class="relative">
+        <button class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleDropdown('msgDropdown')">
+          <i class="fa-solid fa-message text-xl text-gray-600"></i>
+          {% if unread_messages_count > 0 %}
+            <span class="absolute top-1 right-1 w-5 h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center font-semibold">{{ unread_messages_count }}</span>
+          {% endif %}
+        </button>
+        <div id="msgDropdown" class="dropdown-menu absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200"><p class="text-sm font-semibold text-gray-700">Messages</p></div>
+          <div class="max-h-64 overflow-y-auto">
+            {% if message_conversations %}
+              {% for conversation in message_conversations %}
+                <a href="{% url 'messages_inbox' %}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0">
+                  {% if conversation.user.userprofile.profile_picture %}
+                    <img src="{{ conversation.user.userprofile.profile_picture.url }}" alt="" class="w-10 h-10 rounded-full">
+                  {% else %}
+                    <div class="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center font-semibold">{{ conversation.user.get_full_name|default:conversation.user.username|slice:":1"|upper }}</div>
+                  {% endif %}
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                      <h4 class="text-sm font-semibold text-gray-800 truncate">{{ conversation.user.get_full_name|default:conversation.user.username }}</h4>
+                      {% if conversation.unread_count > 0 %}<span class="ml-2 w-5 h-5 bg-green-600 text-white text-xs rounded-full flex items-center justify-center font-semibold flex-shrink-0">{{ conversation.unread_count }}</span>{% endif %}
+                    </div>
+                    <p class="text-xs text-gray-500 truncate">{{ conversation.latest_message.body|truncatewords:5 }}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">{{ conversation.latest_message.created_at|timesince }} ago</p>
+                  </div>
+                </a>
+              {% endfor %}
+            {% else %}
+              <div class="px-4 py-6 text-center text-gray-500 text-sm"><i class="fas fa-inbox text-2xl mb-2"></i><p>No conversations yet</p></div>
+            {% endif %}
+          </div>
+          <div class="px-4 py-2 border-t border-gray-200"><a href="{% url 'messages_inbox' %}" class="text-sm text-green-600 hover:underline">See all in Messenger</a></div>
+        </div>
+      </div>
+      <div class="relative">
+        <button class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg" onclick="toggleDropdown('profileDropdown')">
+          {% if user.userprofile.profile_picture %}<img src="{{ user.userprofile.profile_picture.url }}" alt="Profile" class="w-9 h-9 rounded-full">{% else %}<img src="{% static 'kakanin/img/logo.png' %}" alt="Profile" class="w-9 h-9 rounded-full">{% endif %}
+          <span class="hidden md:block text-sm font-medium text-gray-700">{{ user.get_full_name|default:user.username }}</span>
+          <i class="bi bi-chevron-down text-xs text-gray-500"></i>
+        </button>
+        <div id="profileDropdown" class="dropdown-menu absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 py-2">
+          <div class="px-4 py-3 border-b border-gray-200"><h6 class="text-sm font-semibold text-gray-800">{{ user.get_full_name|default:user.username }}</h6><span class="text-xs text-gray-500">{{ user.email }}</span></div>
+          <div class="px-4 py-2">
+            <div class="flex items-start gap-3 py-2"><i class="bi bi-envelope text-lg text-gray-600 mt-0.5"></i><div class="flex-1"><p class="text-xs text-gray-500">Email</p><p class="text-sm text-gray-700">{{ user.email }}</p></div></div>
+            <div class="flex items-start gap-3 py-2"><i class="bi bi-telephone text-lg text-gray-600 mt-0.5"></i><div class="flex-1"><p class="text-xs text-gray-500">Phone</p><p class="text-sm text-gray-700">{{ user.userprofile.phone|default:'Not provided' }}</p></div></div>
+            <div class="flex items-start gap-3 py-2"><i class="bi bi-geo-alt text-lg text-gray-600 mt-0.5"></i><div class="flex-1"><p class="text-xs text-gray-500">Address</p><p class="text-sm text-gray-700">{{ user.userprofile.get_full_address|default:'Not provided' }}</p></div></div>
+          </div>
+          <div class="border-t border-gray-200 my-1"></div>
+          <a href="{% url 'logout' %}" onclick="return confirm('Are you sure you want to log out?')" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors"><i class="bi bi-box-arrow-right text-lg text-red-600"></i><span class="text-sm text-red-600">Sign Out</span></a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="fixed top-20 left-0 bottom-0 w-72 bg-white/95 backdrop-blur border-r border-gray-100 shadow-md transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col z-40">
+    <!-- Navigation -->
+    <nav class="mt-8 px-4 space-y-2 text-base flex-1 overflow-y-auto">
+      <a href="{% url 'index_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-house text-lg"></i>
+        <span>Home</span>
+      </a>
+      <a href="{% url 'shop_user' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shop text-lg"></i>
+        <span>Shop</span>
+      </a>
+      <a href="{% url 'view_cart' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-shopping-cart text-lg"></i>
+        <span>Cart</span>
+      </a>
+      <a href="{% url 'about' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-circle-info text-lg"></i>
+        <span>About</span>
+      </a>
+      <a href="{% url 'messages_inbox' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-message text-lg"></i>
+        <span>Messages</span>
+      </a>
+      <a href="{% url 'user_profile' %}" 
+         class="flex items-center gap-4 px-4 py-3 rounded-xl text-gray-600 hover:text-green-700 hover:bg-green-50 transition">
+        <i class="fa-solid fa-user text-lg"></i>
+        <span>Profile</span>
+      </a>
+    </nav>
+  </aside>
+
+  <div id="overlay" class="fixed inset-0 bg-black/50 hidden md:hidden z-30"></div>
+
+  <div class="flex-1 md:ml-72 overflow-y-auto pt-20">
+    <div class="p-6">
+      <div class="max-w-6xl mx-auto">
+        <div class="mb-6">
+          <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+            <i class="fas fa-shopping-bag text-green-600"></i> My Orders
+          </h1>
+          <p class="text-gray-600 mt-1">Track and manage your orders</p>
+        </div>
+
+        <!-- Filter Buttons -->
+        <div class="flex flex-wrap gap-2 mb-6">
+          <a href="{% url 'order_list' %}" class="px-4 py-2 rounded-lg font-medium transition {% if not status_filter %}bg-green-600 text-white{% else %}bg-white text-gray-700 hover:bg-gray-100{% endif %}">
+            All Orders
+          </a>
+          {% for status_code, status_label in status_choices %}
+          <a href="?status={{ status_code }}" class="px-4 py-2 rounded-lg font-medium transition {% if status_filter == status_code %}bg-green-600 text-white{% else %}bg-white text-gray-700 hover:bg-gray-100{% endif %}">
+            {{ status_label }}
+          </a>
+          {% endfor %}
+        </div>
+
+        <!-- Orders List -->
+        <div class="space-y-4">
+          {% if orders %}
+            {% for order in orders %}
+            <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6 {% if order.is_reservation %}border-l-4 border-purple-500{% endif %}">
+              <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3 mb-2 flex-wrap">
+                    <h3 class="text-xl font-bold text-gray-800">#{{ order.id }}</h3>
+                    
+                    {% if order.is_reservation %}
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
+                      <i class="fas fa-calendar-check"></i> RESERVATION
+                    </span>
+                    {% endif %}
+                    
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold
+                      {% if order.status == 'pending' %}bg-yellow-100 text-yellow-800
+                      {% elif order.status == 'pending_confirmation' %}bg-blue-100 text-blue-800
+                      {% elif order.status == 'confirmed' %}bg-green-100 text-green-800
+                      {% elif order.status == 'ready_for_pickup' %}bg-indigo-100 text-indigo-800
+                      {% elif order.status == 'out_for_delivery' %}bg-purple-100 text-purple-800
+                      {% elif order.status == 'completed' %}bg-teal-100 text-teal-800
+                      {% elif order.status == 'rejected' %}bg-red-100 text-red-800
+                      {% endif %}">
+                      {{ order.get_status_display }}
+                    </span>
+                  </div>
+                  <p class="text-sm text-gray-500 mb-2">
+                    <i class="fas fa-clock"></i> Ordered: {{ order.created_at|date:"F d, Y h:i A" }}
+                  </p>
+                  
+                  {% if order.is_reservation and order.reservation_date %}
+                  <p class="text-sm font-semibold text-purple-700 mb-2">
+                    <i class="fas fa-calendar"></i> Reserved for: {{ order.reservation_date|date:"F d, Y" }}
+                  </p>
+                  {% endif %}
+                  
+                  {% if order.status == 'pending_confirmation' and order.is_reservation %}
+                  <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+                    <p class="text-sm text-blue-800">
+                      <i class="fas fa-info-circle"></i> <strong>Waiting for Admin Confirmation</strong> - Your reservation request has been received and is pending approval.
+                    </p>
+                  </div>
+                  {% elif order.status == 'confirmed' and order.is_reservation %}
+                  <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-2">
+                    <p class="text-sm text-green-800">
+                      <i class="fas fa-check-circle"></i> <strong>Reservation Confirmed!</strong> - Your reservation has been approved by the admin.
+                    </p>
+                  </div>
+                  {% elif order.status == 'rejected' %}
+                  <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-2">
+                    <p class="text-sm text-red-800">
+                      <i class="fas fa-times-circle"></i> <strong>Reservation Declined</strong> - Unfortunately, your reservation could not be confirmed.
+                    </p>
+                  </div>
+                  {% endif %}
+                  
+                  <div class="flex items-center gap-4 text-sm">
+                    <span class="text-gray-600">
+                      <i class="fas fa-box text-green-600"></i> {{ order.items.count }} item(s)
+                    </span>
+                    <span class="text-gray-600">
+                      {% if order.delivery %}
+                        <i class="fas fa-truck text-green-600"></i> Delivery
+                      {% else %}
+                        <i class="fas fa-store text-green-600"></i> Pickup
+                      {% endif %}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <div class="text-right">
+                    <p class="text-sm text-gray-500">Total</p>
+                    <p class="text-2xl font-bold text-green-600">₱{{ order.get_grand_total|floatformat:2 }}</p>
+                  </div>
+                  <a href="{% url 'order_detail' order.id %}" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2">
+                    <i class="fas fa-eye"></i> View
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="bg-white rounded-xl shadow-md p-12 text-center">
+              <i class="fas fa-shopping-bag text-gray-300 text-6xl mb-4"></i>
+              <h3 class="text-2xl font-bold text-gray-800 mb-2">No orders found</h3>
+              <p class="text-gray-600 mb-6">You haven't placed any orders yet.</p>
+              <a href="{% url 'shop_user' %}" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                <i class="fas fa-shopping-bag"></i> Start Shopping
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+
+    if (sidebarToggle && sidebar && overlay) {
+      sidebarToggle.addEventListener('click', function() {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      });
+
+      overlay.addEventListener('click', function() {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+      });
+    }
+
+    window.addEventListener('resize', function() {
+      if (window.innerWidth >= 768) {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+      }
+    });
+
+    // Dropdown toggle function for navbar
+    function toggleDropdown(id) {
+      const dropdown = document.getElementById(id);
+      const allDropdowns = document.querySelectorAll('.dropdown-menu');
+      allDropdowns.forEach(d => {
+        if (d.id !== id) d.classList.remove('show');
+      });
+      dropdown.classList.toggle('show');
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.relative')) {
+        document.querySelectorAll('.dropdown-menu').forEach(d => {
+          d.classList.remove('show');
+        });
+      }
+    });
+  </script>
+</body>
+</html>
