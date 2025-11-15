@@ -137,18 +137,15 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 # ----------------------------------------------------
 # MEDIA FILES (Cloudinary only)
 # ----------------------------------------------------
-# IMPORTANT: no /media/ URL or directory when using Cloudinary
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
-    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+    "CLOUD_NAME": os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY": os.environ.get("CLOUDINARY_API_KEY"),
+    "API_SECRET": os.environ.get("CLOUDINARY_API_SECRET"),
 }
 
-# Prevent Django from creating /media/ URLs
-MEDIA_URL = ''
-MEDIA_ROOT = ''
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
+MEDIA_URL = "https://res.cloudinary.com/%s/" % os.environ.get("CLOUDINARY_CLOUD_NAME")
 
 # ----------------------------------------------------
 # LOGIN SETTINGS
