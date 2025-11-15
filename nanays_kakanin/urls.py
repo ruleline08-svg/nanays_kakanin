@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from kakanin import views
 from kakanin import reservation_views
+from kakanin.views import storage_debug
 from django.conf import settings
 from django.conf.urls.static import static
  
@@ -121,6 +122,7 @@ urlpatterns = [
     path("admin-reservations/bulk-delete/", reservation_views.admin_bulk_delete_reservations, name="admin_bulk_delete_reservations"),
 
     # Debug
+    path("storage-debug/", storage_debug),
  ]
  
 # Serve static + media in development

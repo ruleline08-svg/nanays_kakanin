@@ -30,6 +30,14 @@ def _expire_overdue_reservations():
     pass
 
 
+def storage_debug(request):
+    return JsonResponse({
+        "DEFAULT_FILE_STORAGE": settings.DEFAULT_FILE_STORAGE,
+        "CLOUD_NAME": settings.CLOUDINARY_STORAGE.get("CLOUD_NAME"),
+        "MEDIA_URL": settings.MEDIA_URL,
+    })
+
+
 def can_order_now(product):
     """
     Check if a product can be ordered right now based on time window.
