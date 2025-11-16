@@ -970,8 +970,7 @@ def admin_contact_edit(request):
             contact_info.gcash_number = request.POST.get('gcash_number', '')
             contact_info.map_link = request.POST.get('map_link')
             contact_info.facebook = request.POST.get('facebook')
-            contact_info.instagram = request.POST.get('instagram')
-            contact_info.tiktok = request.POST.get('tiktok')
+            contact_info.youtube = request.POST.get('youtube')
             contact_info.save()
         else:
             contact_info = ContactInfo.objects.create(
@@ -981,8 +980,7 @@ def admin_contact_edit(request):
                 gcash_number=request.POST.get('gcash_number', ''),
                 map_link=request.POST.get('map_link'),
                 facebook=request.POST.get('facebook'),
-                instagram=request.POST.get('instagram'),
-                tiktok=request.POST.get('tiktok')
+                youtube=request.POST.get('youtube')
             )
         
         messages.success(request, 'Contact information updated successfully!')

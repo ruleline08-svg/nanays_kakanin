@@ -63,7 +63,7 @@ class ContactAdmin(admin.ModelAdmin):
             'fields': ('address', 'phone', 'email', 'map_link')
         }),
         ('Social Media', {
-            'fields': ('facebook', 'instagram', 'tiktok')
+            'fields': ('facebook', 'youtube')
         }),
     )
 

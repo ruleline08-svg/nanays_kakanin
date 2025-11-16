@@ -90,6 +90,42 @@
             </div>
             {% endif %}
 
+            {% if contact.map_link %}
+            <div class="flex items-start space-x-4">
+              <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i class="fas fa-map-location-dot text-green-600 text-xl"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 mb-1">Google Maps</h3>
+                <a href="{{ contact.map_link }}" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700 font-medium">Open location</a>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if contact.facebook %}
+            <div class="flex items-start space-x-4">
+              <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i class="fab fa-facebook text-green-600 text-xl"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 mb-1">Facebook</h3>
+                <a href="{{ contact.facebook }}" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700 font-medium">Visit our page</a>
+              </div>
+            </div>
+            {% endif %}
+
+            {% if contact.youtube %}
+            <div class="flex items-start space-x-4">
+              <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <i class="fab fa-youtube text-green-600 text-xl"></i>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 mb-1">YouTube</h3>
+                <a href="{{ contact.youtube }}" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700 font-medium">Watch our channel</a>
+              </div>
+            </div>
+            {% endif %}
+
             {% if not contact.address and not contact.phone and not contact.email and not contact.hours %}
               <div class="text-gray-500">No contact information yet.</div>
             {% endif %}
@@ -144,19 +180,30 @@
           <div>
             <label for="map_link" class="block text-sm font-medium text-gray-700 mb-1">Google Maps Link</label>
             <input id="map_link" name="map_link" type="url" value="{% if contact %}{{ contact.map_link }}{% endif %}" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+            {% if contact and contact.map_link %}
+              <div class="mt-1 text-sm">
+                <a href="{{ contact.map_link }}" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">Open current map link</a>
+              </div>
+            {% endif %}
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label for="facebook" class="block text-sm font-medium text-gray-700 mb-1">Facebook</label>
               <input id="facebook" name="facebook" type="url" value="{% if contact %}{{ contact.facebook }}{% endif %}" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+              {% if contact and contact.facebook %}
+                <div class="mt-1 text-sm">
+                  <a href="{{ contact.facebook }}" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">Open current link</a>
+                </div>
+              {% endif %}
             </div>
             <div>
-              <label for="instagram" class="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
-              <input id="instagram" name="instagram" type="url" value="{% if contact %}{{ contact.instagram }}{% endif %}" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
-            </div>
-            <div>
-              <label for="tiktok" class="block text-sm font-medium text-gray-700 mb-1">TikTok</label>
-              <input id="tiktok" name="tiktok" type="url" value="{% if contact %}{{ contact.tiktok }}{% endif %}" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+              <label for="youtube" class="block text-sm font-medium text-gray-700 mb-1">YouTube</label>
+              <input id="youtube" name="youtube" type="url" value="{% if contact %}{{ contact.youtube }}{% endif %}" class="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="https://youtube.com/@...">
+              {% if contact and contact.youtube %}
+                <div class="mt-1 text-sm">
+                  <a href="{{ contact.youtube }}" target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700">Open current link</a>
+                </div>
+              {% endif %}
             </div>
           </div>
           <div class="flex items-center justify-between mt-4">

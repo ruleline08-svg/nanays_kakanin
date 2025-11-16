@@ -211,8 +211,7 @@ class ContactInfo(models.Model):
     gcash_number = models.CharField(max_length=20, blank=True, help_text="GCash account number for payments")
     map_link = models.URLField(blank=True)
     facebook = models.URLField(blank=True)
-    instagram = models.URLField(blank=True)
-    tiktok = models.URLField(blank=True)
+    youtube = models.URLField(blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
