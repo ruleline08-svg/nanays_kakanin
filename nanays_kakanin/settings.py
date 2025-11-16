@@ -132,7 +132,14 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / "kakanin" / "static",
 ]
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # ----------------------------------------------------
 # MEDIA FILES (Cloudinary only)
@@ -143,9 +150,7 @@ CLOUDINARY_STORAGE = {
     "API_SECRET": os.environ.get("CLOUDINARY_API_SECRET"),
 }
 
-DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
-
-MEDIA_URL = "https://res.cloudinary.com/%s/" % os.environ.get("CLOUDINARY_CLOUD_NAME")
+MEDIA_URL = "/media/"
 
 # ----------------------------------------------------
 # LOGIN SETTINGS
