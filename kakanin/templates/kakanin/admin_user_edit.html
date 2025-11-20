@@ -95,20 +95,20 @@
                                 </button>
                             </div>
                             <div id="editPasswordRequirements" class="hidden mt-2 text-xs text-gray-600 space-y-1 bg-gray-50 p-3 rounded border border-gray-200">
-                                <p class="flex items-center gap-2">
-                                    <span class="text-gray-400">○</span> 8-20 characters
+                                <p class="flex items-center gap-2 criteria-item" data-rule="length">
+                                    <span class="indicator text-gray-400">○</span> 8-20 characters
                                 </p>
-                                <p class="flex items-center gap-2">
-                                    <span class="text-gray-400">○</span> At least one capital letter (A to Z)
+                                <p class="flex items-center gap-2 criteria-item" data-rule="uppercase">
+                                    <span class="indicator text-gray-400">○</span> At least one capital letter (A to Z)
                                 </p>
-                                <p class="flex items-center gap-2">
-                                    <span class="text-gray-400">○</span> At least one lowercase letter (a to z)
+                                <p class="flex items-center gap-2 criteria-item" data-rule="lowercase">
+                                    <span class="indicator text-gray-400">○</span> At least one lowercase letter (a to z)
                                 </p>
-                                <p class="flex items-center gap-2">
-                                    <span class="text-gray-400">○</span> At least one number (0 to 9)
+                                <p class="flex items-center gap-2 criteria-item" data-rule="digit">
+                                    <span class="indicator text-gray-400">○</span> At least one number (0 to 9)
                                 </p>
-                                <p class="flex items-center gap-2">
-                                    <span class="text-gray-400">○</span> No spaces
+                                <p class="flex items-center gap-2 criteria-item" data-rule="nospace">
+                                    <span class="indicator text-gray-400">○</span> No spaces
                                 </p>
                             </div>
                             {% if form.password1.errors %}
@@ -278,6 +278,20 @@
     const submitButton = form.querySelector('button[type="submit"]');
     const alertBox = document.getElementById('formAlert');
     const alertBaseClasses = 'mb-4 px-4 py-3 rounded-md text-sm font-medium';
+    const passwordInput = document.getElementById('password1');
+    const confirmInput = document.getElementById('password2');
+    const requirementsBox = document.getElementById('editPasswordRequirements');
+    const requirementItems = requirementsBox ? Array.from(requirementsBox.querySelectorAll('.criteria-item')) : [];
+
+    const passwordRules = {
+      length: value => value.length >= 8 && value.length <= 20,
+      uppercase: value => /[A-Z]/.test(value),
+      lowercase: value => /[a-z]/.test(value),
+      digit: value => /\d/.test(value),
+      nospace: value => !/\s/.test(value),
+    };
+
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^\s]{8,20}$/;
 
     function hideAlert() {
       if (!alertBox) {
@@ -298,9 +312,67 @@
       alertBox.textContent = message;
     }
 
+    function updateRequirementStates(value) {
+      requirementItems.forEach(item => {
+        const rule = item.dataset.rule;
+        const indicator = item.querySelector('.indicator');
+        const passes = passwordRules[rule] ? passwordRules[rule](value) : false;
+
+        if (passes) {
+          item.classList.remove('text-gray-600');
+          item.classList.add('text-green-600');
+          if (indicator) {
+            indicator.textContent = '✓';
+            indicator.classList.remove('text-gray-400');
+            indicator.classList.add('text-green-500');
+          }
+        } else {
+          item.classList.remove('text-green-600');
+          item.classList.add('text-gray-600');
+          if (indicator) {
+            indicator.textContent = '○';
+            indicator.classList.remove('text-green-500');
+            indicator.classList.add('text-gray-400');
+          }
+        }
+      });
+    }
+
+    if (passwordInput) {
+      passwordInput.addEventListener('input', function() {
+        updateRequirementStates(passwordInput.value);
+      });
+    }
+
     form.addEventListener('submit', function(event) {
       event.preventDefault();
       hideAlert();
+
+      const passwordValue = passwordInput ? passwordInput.value : '';
+      const confirmValue = confirmInput ? confirmInput.value : '';
+
+      if (passwordValue) {
+        updateRequirementStates(passwordValue);
+
+        if (!passwordPattern.test(passwordValue)) {
+          showAlert('Password must be 8-20 characters, include uppercase, lowercase, a number, and have no spaces.', 'error');
+          if (requirementsBox) {
+            requirementsBox.classList.remove('hidden');
+          }
+          if (passwordInput) {
+            passwordInput.focus();
+          }
+          return;
+        }
+
+        if (passwordValue !== confirmValue) {
+          showAlert('Passwords do not match.', 'error');
+          if (confirmInput) {
+            confirmInput.focus();
+          }
+          return;
+        }
+      }
 
       if (submitButton) {
         submitButton.disabled = true;
