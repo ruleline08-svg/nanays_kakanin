@@ -22,6 +22,7 @@ from django.conf import settings
 from django.shortcuts import render
 from decimal import Decimal
 import os
+import re
 
 
 def _expire_overdue_reservations():
@@ -1163,12 +1164,21 @@ def admin_user_edit(request, user_id):
             return render(request, "kakanin/admin_user_edit.html", {'user_obj': user_obj})
         
         # Password validation if provided
-        if password1 and password1 != password2:
-            error_msg = 'Passwords do not match.'
-            if is_ajax:
-                return JsonResponse({'success': False, 'error': error_msg})
-            messages.error(request, error_msg)
-            return render(request, "kakanin/admin_user_edit.html", {'user_obj': user_obj})
+        if password1:
+            if password1 != password2:
+                error_msg = 'Passwords do not match.'
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': error_msg})
+                messages.error(request, error_msg)
+                return render(request, "kakanin/admin_user_edit.html", {'user_obj': user_obj})
+
+            password_pattern = re.compile(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^\s]{8,20}$')
+            if not password_pattern.match(password1):
+                error_msg = 'Password must be 8-20 characters, include uppercase, lowercase, a number, and have no spaces.'
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': error_msg})
+                messages.error(request, error_msg)
+                return render(request, "kakanin/admin_user_edit.html", {'user_obj': user_obj})
         
         # Update user
         user_obj.username = username

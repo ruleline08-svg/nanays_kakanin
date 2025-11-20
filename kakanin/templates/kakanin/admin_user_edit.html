@@ -37,8 +37,9 @@
         <!-- Edit User Form -->
         <div class="bg-white rounded-lg shadow">
             <div class="p-6">
-                <form method="POST" enctype="multipart/form-data">
+                <form id="editUserForm" method="POST" enctype="multipart/form-data" novalidate>
                     {% csrf_token %}
+                    <div id="formAlert" class="hidden mb-4 px-4 py-3 rounded-md text-sm font-medium"></div>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <!-- Username -->
@@ -267,5 +268,83 @@
         </div>
     </div>
 </div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editUserForm');
+    if (!form) {
+      return;
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    const alertBox = document.getElementById('formAlert');
+    const alertBaseClasses = 'mb-4 px-4 py-3 rounded-md text-sm font-medium';
+
+    function hideAlert() {
+      if (!alertBox) {
+        return;
+      }
+      alertBox.className = `${alertBaseClasses} hidden`;
+      alertBox.textContent = '';
+    }
+
+    function showAlert(message, type) {
+      if (!alertBox) {
+        return;
+      }
+      const variant = type === 'success'
+        ? ' bg-green-100 text-green-700 border border-green-200'
+        : ' bg-red-100 text-red-700 border border-red-200';
+      alertBox.className = `${alertBaseClasses}${variant}`;
+      alertBox.textContent = message;
+    }
+
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
+      hideAlert();
+
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.dataset.originalText = submitButton.dataset.originalText || submitButton.textContent.trim();
+        submitButton.textContent = 'Updating...';
+        submitButton.classList.add('opacity-75', 'cursor-not-allowed');
+      }
+
+      const formData = new FormData(form);
+
+      fetch(window.location.href, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: formData,
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showAlert(data.message || 'User has been updated successfully.', 'success');
+            if (window.parent) {
+              window.parent.postMessage({ type: 'userUpdated', message: data.message }, '*');
+            }
+          } else {
+            showAlert(data.error || 'Failed to update user. Please review the form.', 'error');
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({ type: 'userUpdateError', message: data.error }, '*');
+            }
+          }
+        })
+        .catch(error => {
+          console.error('User update error:', error);
+          showAlert('An unexpected error occurred. Please try again.', 'error');
+        })
+        .finally(() => {
+          if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = submitButton.dataset.originalText || 'Update User';
+            submitButton.classList.remove('opacity-75', 'cursor-not-allowed');
+          }
+        });
+    });
+  });
+</script>
 </body>
 </html>
