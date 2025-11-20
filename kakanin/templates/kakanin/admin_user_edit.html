@@ -3,7 +3,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Edit User - {{ user_obj.username }}</title>
+  {% include "kakanin/includes/seo_meta.html" %}
+  
+
     <link rel="stylesheet" href="{% static 'kakanin/dist/output.css' %}">
     <script src="{% static 'kakanin/js/tailwind.js' %}"></script>
     <!-- Icon Libraries with CDN fallback -->

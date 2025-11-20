@@ -1,10 +1,30 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import TemplateView
+from django.contrib.sitemaps.views import sitemap
 from kakanin import views
 from kakanin import reservation_views
 from kakanin.views import storage_debug
 from django.conf import settings
 from django.conf.urls.static import static
+from kakanin.sitemaps import (
+    AboutPageSitemap,
+    ContactInfoSitemap,
+    FeedbackSitemap,
+    KakaninSitemap,
+    StaticPageSitemap,
+    UserProfileSitemap,
+)
+
+
+sitemaps = {
+    'kakanin': KakaninSitemap,
+    'user_profile': UserProfileSitemap,
+    'about': AboutPageSitemap,
+    'contact': ContactInfoSitemap,
+    'feedback': FeedbackSitemap,
+    'static': StaticPageSitemap,
+}
  
 
 urlpatterns = [
@@ -123,7 +143,24 @@ urlpatterns = [
 
     # Debug
     path("storage-debug/", storage_debug),
- ]
+
+    # SEO & indexing
+    path(
+        "google6e0cd8f053f96bff.html",
+        TemplateView.as_view(
+            template_name="google6e0cd8f053f96bff.html",
+            content_type="text/plain",
+        ),
+    ),
+    path(
+        "robots.txt",
+        TemplateView.as_view(
+            template_name="robots.txt",
+            content_type="text/plain",
+        ),
+    ),
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
+]
  
 # Serve static + media in development
 if settings.DEBUG:
