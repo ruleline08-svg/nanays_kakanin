@@ -240,8 +240,21 @@ def index_user(request):
     try:
         files = [
             f for f in os.listdir(img_dir)
-            if f.lower().endswith(exts) and 'logo' not in f.lower() and 'gcash' not in f.lower()
+            if (
+                f.lower().endswith(exts)
+                and all(block not in f.lower() for block in ('logo', 'gcash', 'poster'))
+            )
         ]
+        preferred_order = [
+            'kakanin1.png',
+            'kakanin2.png',
+            'kakanin3.png',
+            'kakanin4.png',
+            'kakanin5.jpg',
+            'kakanin.png',
+        ]
+        order_lookup = {name: idx for idx, name in enumerate(preferred_order)}
+        files.sort(key=lambda name: (order_lookup.get(name, len(preferred_order)), name))
     except FileNotFoundError:
         files = []
     # Paths relative to the static root
