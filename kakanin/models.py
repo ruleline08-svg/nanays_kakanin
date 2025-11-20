@@ -234,6 +234,7 @@ class Notification(models.Model):
         ('order_completed', 'Order Completed'),
         ('order_cancelled', 'Order Cancelled'),
         ('reservation_submitted', 'Reservation Submitted'),
+        ('reservation_pending_payment', 'Reservation Pending Payment'),
         ('reservation_confirmed', 'Reservation Confirmed'),
         ('reservation_rejected', 'Reservation Rejected'),
         ('reservation_completed', 'Reservation Completed'),

@@ -151,6 +151,10 @@ def create_reservation_notifications(sender, instance, created, **kwargs):
         product_name = instance.product.name if instance.product else "your product"
         
         notification_map = {
+            'pending_payment': {
+                'type': 'reservation_pending_payment',
+                'message': f'Reservation #{instance.id}: Your reservation for {product_name} has been approved! Please submit the required downpayment to proceed.'
+            },
             'confirmed': {
                 'type': 'reservation_confirmed',
                 'message': f'Reservation #{instance.id}: Your reservation for {product_name} on {instance.reservation_date} at {instance.reservation_time} has been confirmed! Please proceed to payment.'

@@ -177,7 +177,8 @@ def submit_reservation(request):
             # Delete only the selected items from cart
             cart_items.delete()
             
-            messages.success(request, f'✅ {cart_items.count()} reservation(s) submitted successfully! Please wait for Nanay to confirm your reservation before proceeding to payment.')
+            success_message = '✅ Reservation submitted successfully! Please wait for Nanay to confirm your reservation before proceeding to payment.'
+            messages.success(request, success_message, extra_tags='reservation-success')
             return redirect('reservation_list')
     
     except Exception as e:
