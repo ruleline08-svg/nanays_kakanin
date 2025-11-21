@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
+from django.templatetags.static import static
+from django.views.generic.base import RedirectView
 from django.contrib.sitemaps.views import sitemap
 from kakanin import views
 from kakanin import reservation_views
@@ -29,8 +31,7 @@ sitemaps = {
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('favicon.ico', views.favicon_ico, name='favicon_ico'),
-    path('favicon.png', views.favicon_png, name='favicon_png'),
+    path('favicon.ico', RedirectView.as_view(url=static('kakanin/img/logo.png'), permanent=True)),
     path('', views.index, name="home"),
     path('about/', views.about, name="about"),
     path('contact/', views.contact, name="contact"),
