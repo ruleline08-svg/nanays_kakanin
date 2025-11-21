@@ -133,7 +133,6 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / "kakanin" / "static",
 ]
-WHITENOISE_ROOT = BASE_DIR / "public"
 STORAGES = {
     "default": {
         "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
