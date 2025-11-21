@@ -11,7 +11,7 @@ from .models import (
     Kakanin, AboutPage, ContactInfo,
     UserProfile, Message, Feedback, Notification, Order, Reservation, Rating
 )
-from django.http import HttpResponse, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.contrib import messages
 from django.db.models import Count, Sum, Q
 from django.core.paginator import Paginator
@@ -37,6 +37,21 @@ def storage_debug(request):
         "CLOUD_NAME": settings.CLOUDINARY_STORAGE.get("CLOUD_NAME"),
         "MEDIA_URL": settings.MEDIA_URL,
     })
+
+
+def _serve_root_favicon(filename, content_type):
+    file_path = settings.BASE_DIR / filename
+    if not file_path.exists():
+        raise Http404
+    return FileResponse(file_path.open("rb"), content_type=content_type)
+
+
+def favicon_png(request):
+    return _serve_root_favicon("favicon.png", "image/png")
+
+
+def favicon_ico(request):
+    return _serve_root_favicon("favicon.ico", "image/x-icon")
 
 
 def can_order_now(product):
