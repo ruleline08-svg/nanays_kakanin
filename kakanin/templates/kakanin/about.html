@@ -257,70 +257,56 @@
       <div class="max-w-4xl mx-auto">
         {% if about %}
           <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-            <div class="md:flex md:items-start md:gap-6">
-              <div class="flex-1">
-                <h2 class="text-3xl font-bold text-green-600 mb-6">{{ about.title|default:"About Nanay's Kakanin" }}</h2>
-                <div class="text-gray-700 leading-relaxed space-y-4">
-                  {{ about.body|linebreaks }}
-                </div>
+            <h2 class="text-3xl font-bold text-green-600 mb-6">{{ about.title|default:"About Nanay's Kakanin" }}</h2>
+            <div class="text-gray-700 leading-relaxed space-y-4">
+              {{ about.body|linebreaks }}
+            </div>
 
-                <!-- Feature highlights -->
-                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div class="text-center p-4">
-                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <i class="fas fa-heart text-green-600 text-2xl"></i>
-                    </div>
-                    <h3 class="font-semibold text-gray-900 mb-2">Made with Love</h3>
-                    <p class="text-gray-600 text-sm">Every kakanin is crafted with care and passion</p>
-                  </div>
-                  <div class="text-center p-4">
-                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <i class="fas fa-check-circle text-green-600 text-2xl"></i>
-                    </div>
-                    <h3 class="font-semibold text-gray-900 mb-2">Authentic Recipes</h3>
-                    <p class="text-gray-600 text-sm">Traditional methods passed down through generations</p>
-                  </div>
-                  <div class="text-center p-4">
-                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <i class="fas fa-seedling text-green-600 text-2xl"></i>
-                    </div>
-                    <h3 class="font-semibold text-gray-900 mb-2">Fresh Quality</h3>
-                    <p class="text-gray-600 text-sm">Only the finest ingredients for the best taste</p>
-                  </div>
+            <!-- Feature highlights -->
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div class="text-center p-4">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i class="fas fa-heart text-green-600 text-2xl"></i>
                 </div>
-
-                {% if about.mission and about.mission != 'None' %}
-                <div class="mt-8">
-                  <h3 class="text-2xl font-bold text-green-600 mb-4">Our Mission</h3>
-                  <div class="text-gray-700 leading-relaxed">
-                    {{ about.mission|linebreaks }}
-                  </div>
-                </div>
-                {% endif %}
-
-                {% if about.vision and about.vision != 'None' %}
-                <div class="mt-8">
-                  <h3 class="text-2xl font-bold text-green-600 mb-4">Our Vision</h3>
-                  <div class="text-gray-700 leading-relaxed">
-                    {{ about.vision|linebreaks }}
-                  </div>
-                </div>
-                {% endif %}
-
-                <!-- Authenticated User Feedback Form (hidden inline; modal will be used) -->
-                <div id="feedback" class="mt-10 border-t pt-8 hidden"></div>
+                <h3 class="font-semibold text-gray-900 mb-2">Made with Love</h3>
+                <p class="text-gray-600 text-sm">Every kakanin is crafted with care and passion</p>
               </div>
-
-              <!-- Nanay photo (if provided) -->
-              <div class="mt-6 md:mt-0 md:w-40 flex-shrink-0">
-                <div class="text-sm text-gray-600 mb-2">Nanay's Photo</div>
-                {% if about.photo %}
-                  <img src="{{ about.photo.url }}" alt="Nanay photo" class="w-40 h-40 object-cover rounded-lg shadow">
-                {% else %}
-                  <div class="w-40 h-40 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400">No photo</div>
-                {% endif %}
+              <div class="text-center p-4">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                </div>
+                <h3 class="font-semibold text-gray-900 mb-2">Authentic Recipes</h3>
+                <p class="text-gray-600 text-sm">Traditional methods passed down through generations</p>
+              </div>
+              <div class="text-center p-4">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i class="fas fa-seedling text-green-600 text-2xl"></i>
+                </div>
+                <h3 class="font-semibold text-gray-900 mb-2">Fresh Quality</h3>
+                <p class="text-gray-600 text-sm">Only the finest ingredients for the best taste</p>
               </div>
             </div>
+
+            {% if about.mission and about.mission != 'None' %}
+            <div class="mt-8">
+              <h3 class="text-2xl font-bold text-green-600 mb-4">Our Mission</h3>
+              <div class="text-gray-700 leading-relaxed">
+                {{ about.mission|linebreaks }}
+              </div>
+            </div>
+            {% endif %}
+
+            {% if about.vision and about.vision != 'None' %}
+            <div class="mt-8">
+              <h3 class="text-2xl font-bold text-green-600 mb-4">Our Vision</h3>
+              <div class="text-gray-700 leading-relaxed">
+                {{ about.vision|linebreaks }}
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Authenticated User Feedback Form (hidden inline; modal will be used) -->
+            <div id="feedback" class="mt-10 border-t pt-8 hidden"></div>
           </div>
         {% else %}
           <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center text-gray-500">
@@ -359,60 +345,50 @@
   <!-- Content -->
   <main class="max-w-3xl mx-auto p-8 bg-white shadow-lg rounded mt-8">
     {% if about %}
-      <div class="md:flex md:items-start md:gap-6">
-        <div class="flex-1">
-          <h2 class="text-3xl font-bold text-green-700 mb-4">{{ about.title|default:"About Nanay's Kakanin" }}</h2>
-          <div class="text-gray-700 leading-relaxed space-y-4">
-            {{ about.body|linebreaks }}
-          </div>
-          <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="text-center p-4">
-              <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-heart text-green-600 text-2xl"></i>
-              </div>
-              <h3 class="font-semibold text-gray-900 mb-2">Made with Love</h3>
-              <p class="text-gray-600 text-sm">Every kakanin is crafted with care and passion</p>
-            </div>
-            <div class="text-center p-4">
-              <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
-              </div>
-              <h3 class="font-semibold text-gray-900 mb-2">Authentic Recipes</h3>
-              <p class="text-gray-600 text-sm">Traditional methods passed down through generations</p>
-            </div>
-            <div class="text-center p-4">
-              <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-seedling text-green-600 text-2xl"></i>
-              </div>
-              <h3 class="font-semibold text-gray-900 mb-2">Fresh Quality</h3>
-              <p class="text-gray-600 text-sm">Only the finest ingredients for the best taste</p>
-            </div>
-          </div>
-          {% if about.mission and about.mission != 'None' %}
-          <div class="mt-8">
-            <h3 class="text-2xl font-bold text-green-600 mb-4">Our Mission</h3>
-            <div class="text-gray-700 leading-relaxed">
-              {{ about.mission|linebreaks }}
-            </div>
-          </div>
-          {% endif %}
-          {% if about.vision and about.vision != 'None' %}
-          <div class="mt-8">
-            <h3 class="text-2xl font-bold text-green-600 mb-4">Our Vision</h3>
-            <div class="text-gray-700 leading-relaxed">
-              {{ about.vision|linebreaks }}
-            </div>
-          </div>
-          {% endif %}
+      <div>
+        <h2 class="text-3xl font-bold text-green-700 mb-4">{{ about.title|default:"About Nanay's Kakanin" }}</h2>
+        <div class="text-gray-700 leading-relaxed space-y-4">
+          {{ about.body|linebreaks }}
         </div>
-        <div class="mt-6 md:mt-0 md:w-40 flex-shrink-0">
-          <div class="text-sm text-gray-600 mb-2">Nanay's Photo</div>
-          {% if about.photo %}
-            <img src="{{ about.photo.url }}" alt="Nanay photo" class="w-40 h-40 object-cover rounded-lg shadow">
-          {% else %}
-            <div class="w-40 h-40 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400">No photo</div>
-          {% endif %}
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="text-center p-4">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-heart text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Made with Love</h3>
+            <p class="text-gray-600 text-sm">Every kakanin is crafted with care and passion</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Authentic Recipes</h3>
+            <p class="text-gray-600 text-sm">Traditional methods passed down through generations</p>
+          </div>
+          <div class="text-center p-4">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-seedling text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="font-semibold text-gray-900 mb-2">Fresh Quality</h3>
+            <p class="text-gray-600 text-sm">Only the finest ingredients for the best taste</p>
+          </div>
         </div>
+        {% if about.mission and about.mission != 'None' %}
+        <div class="mt-8">
+          <h3 class="text-2xl font-bold text-green-600 mb-4">Our Mission</h3>
+          <div class="text-gray-700 leading-relaxed">
+            {{ about.mission|linebreaks }}
+          </div>
+        </div>
+        {% endif %}
+        {% if about.vision and about.vision != 'None' %}
+        <div class="mt-8">
+          <h3 class="text-2xl font-bold text-green-600 mb-4">Our Vision</h3>
+          <div class="text-gray-700 leading-relaxed">
+            {{ about.vision|linebreaks }}
+          </div>
+        </div>
+        {% endif %}
       </div>
     {% else %}
       <div class="text-center text-gray-500">
