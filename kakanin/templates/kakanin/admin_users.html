@@ -337,7 +337,10 @@ function getCSRFToken() {
 }
 
 function toggleUserStatus(userId, newStatus) {
-    if (confirm('Are you sure you want to ' + (newStatus ? 'activate' : 'deactivate') + ' this user?')) {
+    const shouldActivate = typeof newStatus === 'string' ? newStatus === 'true' : Boolean(newStatus);
+    const actionLabel = shouldActivate ? 'activate' : 'deactivate';
+
+    if (confirm(`Are you sure you want to ${actionLabel} this user?`)) {
         const csrfToken = getCSRFToken();
         if (!csrfToken) {
             alert('CSRF token not found. Please refresh the page.');
@@ -350,7 +353,7 @@ function toggleUserStatus(userId, newStatus) {
                 'X-CSRFToken': csrfToken,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({'is_active': newStatus})
+            body: JSON.stringify({'is_active': shouldActivate})
         })
         .then(response => response.json())
         .then(data => {
