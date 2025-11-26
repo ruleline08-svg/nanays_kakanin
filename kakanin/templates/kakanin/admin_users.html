@@ -75,9 +75,9 @@
                         <h1 class="text-3xl font-bold text-gray-800">Users Management</h1>
                         <p class="text-gray-600">View and manage customer accounts</p>
                     </div>
-                    <button onclick="openCreateModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
+                    <a href="{% url 'admin_user_create' %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
                         <i class="fas fa-plus mr-2"></i>Add New User
-                    </button>
+                    </a>
                 </div>
 
                 <!-- Messages -->
@@ -181,30 +181,31 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex space-x-2">
-                                                <button type="button" onclick="openEditModal({{ user.id }})" class="text-blue-600 hover:text-blue-900">
+                                                <a href="{% url 'admin_user_edit' user.id %}" class="text-blue-600 hover:text-blue-900" title="Edit User">
                                                     <i class="fas fa-edit"></i>
-                                                </button>
+                                                </a>
                                                 <a href="{% url 'message_thread' user.id %}" class="text-green-600 hover:text-green-800" title="Message User">
                                                     <i class="fas fa-message"></i>
                                                 </a>
-                                                <button 
-                                                     type="button"
-                                                     onclick="toggleUserStatus('{{ user.id }}', {{ user.is_active|yesno:'true,false' }})" 
-                                                     class="text-yellow-600 hover:text-yellow-900">
-                                                    {% if user.is_active %}
-                                                        <i class="fas fa-pause"></i>
-                                                    {% else %}
-                                                        <i class="fas fa-play"></i>
-                                                    {% endif %}
-                                                </button>
+                                                <form method="post" action="{% url 'admin_user_toggle' user.id %}" class="inline" onsubmit="return confirm('Are you sure you want to {% if user.is_active %}deactivate{% else %}activate{% endif %} this user?');">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="is_active" value="{% if user.is_active %}false{% else %}true{% endif %}">
+                                                    <button type="submit" class="text-yellow-600 hover:text-yellow-900">
+                                                        {% if user.is_active %}
+                                                            <i class="fas fa-pause"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-play"></i>
+                                                        {% endif %}
+                                                    </button>
+                                                </form>
 
                                                 <!-- Delete User -->
-                                                <button 
-                                                    type="button"
-                                                    onclick="deleteUser('{{ user.id }}', '{{ user.username|escapejs }}')" 
-                                                    class="text-red-600 hover:text-red-900">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
+                                                <form method="post" action="{% url 'admin_user_delete' user.id %}" class="inline" onsubmit="return confirm('Delete user &quot;{{ user.username|escapejs }}&quot;? This action cannot be undone.');">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="text-red-600 hover:text-red-900">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
 
                                             </div>
                                         </td>
