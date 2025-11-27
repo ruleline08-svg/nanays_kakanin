@@ -1048,6 +1048,7 @@ def admin_users(request):
 @xframe_options_sameorigin
 def admin_user_create(request):
     if request.method == 'POST':
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         username = request.POST.get('username')
         email = request.POST.get('email')
         password1 = request.POST.get('password1')
@@ -1064,23 +1065,38 @@ def admin_user_create(request):
         
         # Validation
         if not username or not email or not password1:
-            messages.error(request, 'Username, email, and password are required.')
+            error_msg = 'Username, email, and password are required.'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg})
+            messages.error(request, error_msg)
             return render(request, "kakanin/admin_user_create.html")
         
         if not phone or not barangay or not zone:
-            messages.error(request, 'Phone, barangay, and zone are required.')
+            error_msg = 'Phone, barangay, and zone are required.'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg})
+            messages.error(request, error_msg)
             return render(request, "kakanin/admin_user_create.html")
         
         if password1 != password2:
-            messages.error(request, 'Passwords do not match.')
+            error_msg = 'Passwords do not match.'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg})
+            messages.error(request, error_msg)
             return render(request, "kakanin/admin_user_create.html")
         
         if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already exists.')
+            error_msg = 'Username already exists.'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg})
+            messages.error(request, error_msg)
             return render(request, "kakanin/admin_user_create.html")
         
         if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email already exists.')
+            error_msg = 'Email already exists.'
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': error_msg})
+            messages.error(request, error_msg)
             return render(request, "kakanin/admin_user_create.html")
         
         # Create user
@@ -1102,8 +1118,12 @@ def admin_user_create(request):
         profile.zone = zone
         profile.additional_notes = additional_notes
         profile.save()
-        
-        messages.success(request, f'User "{username}" created successfully!')
+
+        success_msg = f'User "{username}" created successfully!'
+        if is_ajax:
+            return JsonResponse({'success': True, 'message': success_msg})
+
+        messages.success(request, success_msg)
         return redirect('admin_users')
     
     return render(request, "kakanin/admin_user_create.html")
