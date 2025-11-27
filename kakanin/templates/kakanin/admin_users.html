@@ -405,46 +405,27 @@ function deleteUser(userId, username) {
 }
 
 // Sidebar toggle
-const sidebar = document.getElementById('sidebar');
-const overlay = document.getElementById('overlay');
-const sidebarToggle = document.getElementById('sidebarToggle');
 const mainContent = document.getElementById('mainContent');
-if (sidebarToggle && sidebar && overlay && mainContent) {
-  sidebarToggle.addEventListener('click', function() {
-    if (window.innerWidth < 1024) {
-      sidebar.classList.toggle('show');
-      overlay.classList.toggle('hidden');
-    } else {
-      sidebar.classList.toggle('collapsed');
-      mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '80px' : '280px';
-    }
-  });
-  overlay.addEventListener('click', function() {
-    sidebar.classList.remove('show');
-    overlay.classList.add('hidden');
-  });
-  window.addEventListener('resize', function() {
+
+if (typeof sidebar !== 'undefined' && typeof overlay !== 'undefined' && typeof sidebarToggle !== 'undefined' && mainContent) {
+  const updateLayoutForSidebar = () => {
     if (window.innerWidth >= 1024) {
-      overlay.classList.add('hidden');
-      sidebar.classList.remove('show');
       mainContent.style.marginLeft = sidebar.classList.contains('collapsed') ? '80px' : '280px';
     } else {
-      sidebar.classList.remove('collapsed');
       mainContent.style.marginLeft = '0';
     }
+  };
+
+  sidebarToggle.addEventListener('click', () => {
+    updateLayoutForSidebar();
   });
+
+  window.addEventListener('resize', () => {
+    updateLayoutForSidebar();
+  });
+
+  updateLayoutForSidebar();
 }
-function toggleDropdown(id) {
-  const dropdown = document.getElementById(id);
-  const allDropdowns = document.querySelectorAll('.dropdown-menu');
-  allDropdowns.forEach(d => { if (d.id !== id) d.classList.remove('show'); });
-  dropdown.classList.toggle('show');
-}
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.relative')) {
-    document.querySelectorAll('.dropdown-menu').forEach(d => { d.classList.remove('show'); });
-  }
-});
 
 let reloadTimer = null;
 
