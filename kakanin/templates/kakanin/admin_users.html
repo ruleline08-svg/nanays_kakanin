@@ -75,9 +75,9 @@
                         <h1 class="text-3xl font-bold text-gray-800">Users Management</h1>
                         <p class="text-gray-600">View and manage customer accounts</p>
                     </div>
-                    <a href="{% url 'admin_user_create' %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
+                    <button type="button" data-create-user class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
                         <i class="fas fa-plus mr-2"></i>Add New User
-                    </a>
+                    </button>
                 </div>
 
                 <!-- Messages -->
@@ -181,9 +181,9 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex space-x-2">
-                                                <a href="{% url 'admin_user_edit' user.id %}" class="text-blue-600 hover:text-blue-900" title="Edit User">
+                                                <button type="button" data-edit-user="{{ user.id }}" class="text-blue-600 hover:text-blue-900 focus:outline-none" title="Edit User" aria-label="Edit {{ user.username }}">
                                                     <i class="fas fa-edit"></i>
-                                                </a>
+                                                </button>
                                                 <a href="{% url 'message_thread' user.id %}" class="text-green-600 hover:text-green-800" title="Message User">
                                                     <i class="fas fa-message"></i>
                                                 </a>
@@ -677,6 +677,63 @@ function showToast(message, variant = 'info') {
       modal.classList.add('hidden');
       iframe.src = 'about:blank'; // Clear iframe
     }
+
+    function bindUserModalTriggers() {
+      const editButtons = document.querySelectorAll('[data-edit-user]');
+      editButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const userId = button.getAttribute('data-edit-user');
+          if (userId) {
+            openEditModal(userId);
+          }
+        });
+      });
+
+      const createButtons = document.querySelectorAll('[data-create-user]');
+      createButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          openCreateModal();
+        });
+      });
+    }
+
+    function bindModalDismissHandlers() {
+      const editModal = document.getElementById('editUserModal');
+      if (editModal) {
+        editModal.addEventListener('click', (event) => {
+          if (event.target === editModal) {
+            closeEditModal();
+          }
+        });
+      }
+
+      const createModal = document.getElementById('createUserModal');
+      if (createModal) {
+        createModal.addEventListener('click', (event) => {
+          if (event.target === createModal) {
+            closeCreateModal();
+          }
+        });
+      }
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          const editVisible = editModal && !editModal.classList.contains('hidden');
+          const createVisible = createModal && !createModal.classList.contains('hidden');
+
+          if (editVisible) {
+            closeEditModal();
+          }
+
+          if (createVisible) {
+            closeCreateModal();
+          }
+        }
+      });
+    }
+
+    bindUserModalTriggers();
+    bindModalDismissHandlers();
 
     function handleUserModalMessage(event) {
       if (!event || !event.data) {
