@@ -732,8 +732,15 @@ function showToast(message, variant = 'info') {
       });
     }
 
-    bindUserModalTriggers();
-    bindModalDismissHandlers();
+    document.addEventListener('DOMContentLoaded', () => {
+      bindUserModalTriggers();
+      bindModalDismissHandlers();
+    });
+
+    window.openEditModal = openEditModal;
+    window.closeEditModal = closeEditModal;
+    window.openCreateModal = openCreateModal;
+    window.closeCreateModal = closeCreateModal;
 
     function handleUserModalMessage(event) {
       if (!event || !event.data) {
