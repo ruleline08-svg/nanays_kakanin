@@ -75,7 +75,7 @@
                         <h1 class="text-3xl font-bold text-gray-800">Users Management</h1>
                         <p class="text-gray-600">View and manage customer accounts</p>
                     </div>
-                    <button type="button" data-create-user class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
+                    <button type="button" data-create-user onclick="openCreateModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
                         <i class="fas fa-plus mr-2"></i>Add New User
                     </button>
                 </div>
@@ -181,7 +181,7 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex space-x-2">
-                                                <button type="button" data-edit-user="{{ user.id }}" class="text-blue-600 hover:text-blue-900 focus:outline-none" title="Edit User" aria-label="Edit {{ user.username }}">
+                                                <button type="button" data-edit-user="{{ user.id }}" onclick="openEditModal('{{ user.id }}')" class="text-blue-600 hover:text-blue-900 focus:outline-none" title="Edit User" aria-label="Edit {{ user.username }}">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <a href="{% url 'message_thread' user.id %}" class="text-green-600 hover:text-green-800" title="Message User">
