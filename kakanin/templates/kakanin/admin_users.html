@@ -75,9 +75,13 @@
                         <h1 class="text-3xl font-bold text-gray-800">Users Management</h1>
                         <p class="text-gray-600">View and manage customer accounts</p>
                     </div>
-                    <button type="button" data-create-user data-create-url="{% url 'admin_user_create' %}" onclick="if (window.adminUsersPage) { window.adminUsersPage.openCreateModal({ url: this.dataset.createUrl }); } else { window.location.href = this.dataset.createUrl; }" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
+                    <a href="{% url 'admin_user_create' %}"
+                       data-create-user
+                       data-create-url="{% url 'admin_user_create' %}"
+                       onclick="if (window.adminUsersPage) { window.adminUsersPage.openCreateModal({ url: this.dataset.createUrl || this.href }); return false; }"
+                       class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
                         <i class="fas fa-plus mr-2"></i>Add New User
-                    </button>
+                    </a>
                 </div>
 
                 <!-- Messages -->
@@ -181,9 +185,15 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex space-x-2">
-                                                <button type="button" data-edit-user="{{ user.id }}" data-edit-url="{% url 'admin_user_edit' user.id %}" onclick="if (window.adminUsersPage) { window.adminUsersPage.openEditModal({ url: this.dataset.editUrl, userId: this.dataset.editUser }); } else { window.location.href = this.dataset.editUrl; }" class="text-blue-600 hover:text-blue-900 focus:outline-none" title="Edit User" aria-label="Edit {{ user.username }}">
+                                                <a href="{% url 'admin_user_edit' user.id %}"
+                                                   data-edit-user="{{ user.id }}"
+                                                   data-edit-url="{% url 'admin_user_edit' user.id %}"
+                                                   onclick="if (window.adminUsersPage) { window.adminUsersPage.openEditModal({ url: this.dataset.editUrl || this.href, userId: this.dataset.editUser }); return false; }"
+                                                   class="text-blue-600 hover:text-blue-900 focus:outline-none"
+                                                   title="Edit User"
+                                                   aria-label="Edit {{ user.username }}">
                                                     <i class="fas fa-edit"></i>
-                                                </button>
+                                                </a>
                                                 <a href="{% url 'message_thread' user.id %}" class="text-green-600 hover:text-green-800" title="Message User">
                                                     <i class="fas fa-message"></i>
                                                 </a>
