@@ -75,7 +75,7 @@
                         <h1 class="text-3xl font-bold text-gray-800">Users Management</h1>
                         <p class="text-gray-600">View and manage customer accounts</p>
                     </div>
-                    <button type="button" data-create-user class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
+                    <button type="button" data-create-user data-create-url="{% url 'admin_user_create' %}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center">
                         <i class="fas fa-plus mr-2"></i>Add New User
                     </button>
                 </div>
@@ -181,7 +181,7 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <div class="flex space-x-2">
-                                                <button type="button" data-edit-user="{{ user.id }}" class="text-blue-600 hover:text-blue-900 focus:outline-none" title="Edit User" aria-label="Edit {{ user.username }}">
+                                                <button type="button" data-edit-user="{{ user.id }}" data-edit-url="{% url 'admin_user_edit' user.id %}" class="text-blue-600 hover:text-blue-900 focus:outline-none" title="Edit User" aria-label="Edit {{ user.username }}">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
                                                 <a href="{% url 'message_thread' user.id %}" class="text-green-600 hover:text-green-800" title="Message User">
@@ -644,12 +644,20 @@ function showToast(message, variant = 'info') {
     }
 
     // Edit User Modal Functions
-    function openEditModal(userId) {
-      // Open the edit page in the modal using an iframe
+    function openEditModal({ userId = null, url = null } = {}) {
       const modal = document.getElementById('editUserModal');
       const iframe = document.getElementById('editIframe');
       
-      iframe.src = `/admin-user-edit/${userId}/`;
+      if (!modal || !iframe) {
+        return;
+      }
+
+      const src = url || (userId ? `/admin-user-edit/${userId}/` : null);
+      if (!src) {
+        return;
+      }
+
+      iframe.src = src;
       modal.classList.remove('hidden');
     }
 
@@ -662,11 +670,16 @@ function showToast(message, variant = 'info') {
     }
 
     // Create User Modal Functions
-    function openCreateModal() {
+    function openCreateModal({ url = null } = {}) {
       const modal = document.getElementById('createUserModal');
       const iframe = document.getElementById('createIframe');
       
-      iframe.src = '/admin-user-create/';
+      if (!modal || !iframe) {
+        return;
+      }
+
+      const src = url || '/admin-user-create/';
+      iframe.src = src;
       modal.classList.remove('hidden');
     }
 
@@ -683,8 +696,17 @@ function showToast(message, variant = 'info') {
       editButtons.forEach((button) => {
         button.addEventListener('click', () => {
           const userId = button.getAttribute('data-edit-user');
-          if (userId) {
-            openEditModal(userId);
+          const editUrl = button.getAttribute('data-edit-url');
+          const options = {};
+
+          if (editUrl) {
+            options.url = editUrl;
+          } else if (userId) {
+            options.userId = userId;
+          }
+
+          if (options.url || options.userId) {
+            openEditModal(options);
           }
         });
       });
@@ -692,7 +714,9 @@ function showToast(message, variant = 'info') {
       const createButtons = document.querySelectorAll('[data-create-user]');
       createButtons.forEach((button) => {
         button.addEventListener('click', () => {
-          openCreateModal();
+          const createUrl = button.getAttribute('data-create-url');
+          const options = createUrl ? { url: createUrl } : {};
+          openCreateModal(options);
         });
       });
     }
@@ -732,8 +756,16 @@ function showToast(message, variant = 'info') {
       });
     }
 
-    bindUserModalTriggers();
-    bindModalDismissHandlers();
+    function initializeUserModalInteractions() {
+      bindUserModalTriggers();
+      bindModalDismissHandlers();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeUserModalInteractions);
+    } else {
+      initializeUserModalInteractions();
+    }
 
     function handleUserModalMessage(event) {
       if (!event || !event.data) {
