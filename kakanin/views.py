@@ -180,31 +180,40 @@ def signup_view(request):
 
 
 def login_view(request):
+    form = AuthenticationForm(request, data=request.POST or None)
+
     if request.method == "POST":
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        
-        # Check if user exists
-        try:
-            user_exists = User.objects.get(username=username)
-            # User exists, now check password
-            form = AuthenticationForm(request, data=request.POST)
-            if form.is_valid():
-                user = form.get_user()
-                login(request, user)
-                # Redirect based on role
-                if user.is_superuser:
-                    return redirect("admin_dashboard")  # superuser → custom admin dashboard
-                return redirect("index_user")    # normal user → user dashboard
-            else:
-                # Form is invalid, which means wrong password
-                messages.error(request, 'Wrong password. Please try again.')
-        except User.DoesNotExist:
-            # User doesn't exist
-            messages.error(request, 'Username does not exist. Please check your username or sign up.')
-            form = AuthenticationForm()
-    else:
-        form = AuthenticationForm()
+        identifier = (request.POST.get("username") or "").strip()
+        password = request.POST.get("password", "")
+
+        user = authenticate(request, username=identifier, password=password)
+
+        if not user and identifier:
+            try:
+                user_obj = User.objects.get(email__iexact=identifier)
+            except User.MultipleObjectsReturned:
+                user_obj = User.objects.filter(email__iexact=identifier).first()
+            except User.DoesNotExist:
+                user_obj = None
+
+            if user_obj:
+                user = authenticate(request, username=user_obj.username, password=password)
+
+        if user:
+            login(request, user)
+            if user.is_superuser:
+                return redirect("admin_dashboard")
+            return redirect("index_user")
+
+        if not identifier:
+            messages.error(request, "Please enter your username or email.")
+        elif not password:
+            messages.error(request, "Please enter your password.")
+        elif User.objects.filter(Q(username__iexact=identifier) | Q(email__iexact=identifier)).exists():
+            messages.error(request, "Wrong password. Please try again.")
+        else:
+            messages.error(request, "Account not found. Please check your username/email or sign up.")
+
     return render(request, "kakanin/login.html", {"form": form})
 
 
