@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nanays-kakanin.onrender.com/sitemap.xml
